@@ -60,8 +60,8 @@ all: main-build
 main-build: ECSE-362\ Lab1.elf secondary-outputs
 
 # Tool invocations
-ECSE-362\ Lab1.elf ECSE-362\ Lab1.map: $(OBJS) $(USER_OBJS) C:\Users\wjaso\STM32CubeIDE\workspace_1.19.0\ECSE-362\ Lab1\STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ECSE-362 Lab1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\wjaso\STM32CubeIDE\workspace_1.19.0\ECSE-362 Lab1\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECSE-362 Lab1.map" -Wl,--gc-sections -static -L../Core/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ECSE-362\ Lab1.elf ECSE-362\ Lab1.map: $(OBJS) $(USER_OBJS) C:\Users\Anna\Documents\ECSE\ 444\ecse-444\ECSE-444\ Lab1\ECSE-362\ Lab1\STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ECSE-362 Lab1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Anna\Documents\ECSE 444\ecse-444\ECSE-444 Lab1\ECSE-362 Lab1\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECSE-362 Lab1.map" -Wl,--gc-sections -static -L../Core/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

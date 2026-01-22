@@ -92,11 +92,17 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  float max = 0;
-  uint32_t maxIndex;
+
+  // Introduction Variables
+  //float max = 0;
+  //uint32_t maxIndex;
   //the max us 88.49 at index 5
-  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52,
-		  82.70, 77.73};
+  //float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52,
+	//	  82.70, 77.73};
+
+  // Square-Root Variables
+  float32_t x = 25;			// value to find square root of
+  float32_t sqrt_x;		// square root of value
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,13 +112,25 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
+
+	  // arm_math.h function for square root
 	  ITM_Port32(31) = 1;
-	  for (uint32_t i=0; i<1000; i++){
-		  //cMax(&array, 10, &max, &maxIndex);
-		  //asmMax(&array, 10, &max, &maxIndex);
-		  arm_max_f32(&array, 10, &max, &maxIndex);
+	  for (uint32_t i=0; i<1000; i++) {
+		  arm_sqrt_f32(x, &sqrt_x);
 	  }
 	  ITM_Port32(31) = 2;
+
+
+	  // Introduction Timing COde
+//	  ITM_Port32(31) = 1;
+//	  for (uint32_t i=0; i<1000; i++){
+//		  //cMax(&array, 10, &max, &maxIndex);
+//		  //asmMax(&array, 10, &max, &maxIndex);
+//		  arm_max_f32(&array, 10, &max, &maxIndex);
+//	  }
+//	  ITM_Port32(31) = 2;
 
   }
   /* USER CODE END 3 */
