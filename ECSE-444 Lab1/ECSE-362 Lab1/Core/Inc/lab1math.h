@@ -1,0 +1,16 @@
+/*
+ * lab1math.h
+ *
+ *  Created on: Jan 22, 2026
+ *      Author: wjaso
+ */
+
+#ifndef SRC_LAB1MATH_H_
+#define SRC_LAB1MATH_H_
+
+extern void asmMax(float *array, uint32_t size, float *max, uint32_t *maxIndex);
+
+//void cMax(float *array, uint32_t size , float *max, uint32_t *maxIndex);
+
+
+#endif /* SRC_LAB1MATH_H_ */
