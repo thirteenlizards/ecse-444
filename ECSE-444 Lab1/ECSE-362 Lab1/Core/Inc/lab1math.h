@@ -8,9 +8,12 @@
 #ifndef SRC_LAB1MATH_H_
 #define SRC_LAB1MATH_H_
 
-extern void asmMax(float *array, uint32_t size, float *max, uint32_t *maxIndex);
+// finding sqrt using asm
+extern void asmSqrt(float x, float *sqrtX);
 
-//void cMax(float *array, uint32_t size , float *max, uint32_t *maxIndex);
+// finding max
+extern void asmMax(float *array, uint32_t size, float *max, uint32_t *maxIndex);
+void cMax(float *array, uint32_t size , float *max, uint32_t *maxIndex);
 
 
 #endif /* SRC_LAB1MATH_H_ */

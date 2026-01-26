@@ -115,10 +115,17 @@ int main(void)
 
 
 
+
 	  // arm_math.h function for square root
 	  ITM_Port32(31) = 1;
 	  for (uint32_t i=0; i<1000; i++) {
-		  arm_sqrt_f32(x, &sqrt_x);
+
+		  // ASM Function for Sqrt
+		  asmSqrt(x, &sqrt_x);
+
+		  // CMSIS Function for Sqrt
+		  //arm_sqrt_f32(x, &sqrt_x);
+
 	  }
 	  ITM_Port32(31) = 2;
 

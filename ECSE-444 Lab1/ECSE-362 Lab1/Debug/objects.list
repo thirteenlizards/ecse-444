@@ -1,4 +1,5 @@
 "./Core/Src/asmmax.o"
+"./Core/Src/asmsqrt.o"
 "./Core/Src/cmax.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32l4xx_hal_msp.o"
