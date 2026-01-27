@@ -389,15 +389,17 @@ uint8_t newtonRaphsonSqrt(float x, float epsilon, uint16_t maxIter, float *sqrtX
  800036a:	2301      	movs	r3, #1
  800036c:	76fb      	strb	r3, [r7, #27]
  800036e:	e035      	b.n	80003dc <newtonRaphsonSqrt+0x9c>
-		// xSqrt_new = ((sqrtX + x) / sqrtX) / 2
-		xSqrt_next = (((xSqrt_current) + x) / xSqrt_current)/2;
- 8000370:	ed97 7a07 	vldr	s14, [r7, #28]
- 8000374:	edd7 7a03 	vldr	s15, [r7, #12]
- 8000378:	ee77 6a27 	vadd.f32	s13, s14, s15
+
+		//Sqrt_next = (((xSqrt_current) + x) / xSqrt_current)/2;
+
+		xSqrt_next = 0.5*(xSqrt_current + (x/xSqrt_current));
+ 8000370:	edd7 6a03 	vldr	s13, [r7, #12]
+ 8000374:	edd7 7a07 	vldr	s15, [r7, #28]
+ 8000378:	ee86 7aa7 	vdiv.f32	s14, s13, s15
  800037c:	edd7 7a07 	vldr	s15, [r7, #28]
- 8000380:	ee86 7aa7 	vdiv.f32	s14, s13, s15
- 8000384:	eef0 6a00 	vmov.f32	s13, #0	@ 0x40000000  2.0
- 8000388:	eec7 7a26 	vdiv.f32	s15, s14, s13
+ 8000380:	ee77 7a27 	vadd.f32	s15, s14, s15
+ 8000384:	eeb6 7a00 	vmov.f32	s14, #96	@ 0x3f000000  0.5
+ 8000388:	ee67 7a87 	vmul.f32	s15, s15, s14
  800038c:	edc7 7a05 	vstr	s15, [r7, #20]
 
 		diff = xSqrt_next - xSqrt_current;

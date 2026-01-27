@@ -23,8 +23,10 @@ uint8_t newtonRaphsonSqrt(float x, float epsilon, uint16_t maxIter, float *sqrtX
 
 
 	for (uint8_t i = 1; i < maxIter; i++) {
-		// xSqrt_new = ((sqrtX + x) / sqrtX) / 2
-		xSqrt_next = (((xSqrt_current) + x) / xSqrt_current)/2;
+
+		//Sqrt_next = (((xSqrt_current) + x) / xSqrt_current)/2;
+
+		xSqrt_next = 0.5*(xSqrt_current + (x/xSqrt_current));
 
 		diff = xSqrt_next - xSqrt_current;
 

@@ -118,7 +118,7 @@ int main(void)
 
 
 
-	  // arm_math.h function for square root
+
 	  ITM_Port32(31) = 1;
 	  for (uint32_t i=0; i<1000; i++) {
 
