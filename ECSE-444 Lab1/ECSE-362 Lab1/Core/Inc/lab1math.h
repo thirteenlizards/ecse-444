@@ -8,6 +8,9 @@
 #ifndef SRC_LAB1MATH_H_
 #define SRC_LAB1MATH_H_
 
+// finding sqrt using newty-raphsy
+uint8_t newtonRaphsonSqrt(float x, float epsilon, uint16_t maxIter, float *sqrtX);
+
 // finding sqrt using asm
 extern void asmSqrt(float x, float *sqrtX);
 

@@ -2,6 +2,7 @@
 "./Core/Src/asmsqrt.o"
 "./Core/Src/cmax.o"
 "./Core/Src/main.o"
+"./Core/Src/newtonRaphsonSqrt.o"
 "./Core/Src/stm32l4xx_hal_msp.o"
 "./Core/Src/stm32l4xx_it.o"
 "./Core/Src/syscalls.o"

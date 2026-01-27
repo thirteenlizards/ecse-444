@@ -103,6 +103,8 @@ int main(void)
   // Square-Root Variables
   float32_t x = 25;			// value to find square root of
   float32_t sqrt_x;		// square root of value
+  float32_t epsilon = 0.00000001;
+  uint16_t maxIter = 1000;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -121,10 +123,13 @@ int main(void)
 	  for (uint32_t i=0; i<1000; i++) {
 
 		  // ASM Function for Sqrt
-		  asmSqrt(x, &sqrt_x);
+		  //asmSqrt(x, &sqrt_x);
 
 		  // CMSIS Function for Sqrt
 		  //arm_sqrt_f32(x, &sqrt_x);
+
+		  // Newty-Raphsy Function for Sqrt
+		  newtonRaphsonSqrt(x, epsilon, maxIter, &sqrt_x);
 
 	  }
 	  ITM_Port32(31) = 2;
