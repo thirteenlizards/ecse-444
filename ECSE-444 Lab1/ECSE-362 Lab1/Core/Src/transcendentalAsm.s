@@ -1,5 +1,6 @@
 /*
 * asmmax.s
+* Referenced: https://developer.arm.com/community/arm-community-blogs/b/architectures-and-processors-blog/posts/condition-codes-4-floating-point-comparisons-using-vfp
 */
 
 // unified indicates that we're using a mix of different ARM instructions,
@@ -18,12 +19,16 @@
 /**
 * uint8_t transcend(float x0, float omega, float phi, float epsilon, uint16_t maxIter, float *root) {
 *
+// by calling convention, s16-s31 are preserved and s0-s15 are not
+
+before:
 * S0 = x0, initial guess for x
 * S1 = omega
 * S2 = phi
 * S3 = epsilon
 * R0 = maxIter
 * R1 = pointer to root
+
 */
 
 asmTrans:
@@ -50,6 +55,7 @@ loop:
 
 // Increment loop counter
 	ADD R2, R2, #1
+
 
 // f(x) = x^2 - cos(omega*x + phi)
 
@@ -105,7 +111,8 @@ loop:
 
 	// if (fabs(diff) < epsilon)
 	VCMP.F32 S8, S3
-	BLT success // if comparison succeeds, done
+	VMRS APSR_nzcv, FPSCR	// Transfer flags from FPSCR to APSR
+	BLT success 			// if comparison succeeds, done
 
 // Check number of iterations
 	CMP R2, R0
@@ -113,7 +120,7 @@ loop:
 
 // Else, prepare for next iteration
 	// xCurrent = xNext;
-	VMOV S6, S9
+	VMOV S9, S6
 	B loop
 
 
