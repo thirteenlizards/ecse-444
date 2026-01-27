@@ -100,11 +100,16 @@ int main(void)
   //float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52,
 	//	  82.70, 77.73};
 
-  // Square-Root Variables
-  float32_t x = 25;			// value to find square root of
-  float32_t sqrt_x;		// square root of value
+  // Variables
+  //float32_t x = 25;			// value to find square root of
+  //float32_t sqrt_x;		// square root of value
   float32_t epsilon = 0.00000001;
   uint16_t maxIter = 1000;
+  float32_t x0 = 0.5f;
+  float32_t omega = 1.0f;
+  float32_t phi = 1.0f;
+  float32_t root;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -129,7 +134,13 @@ int main(void)
 		  //arm_sqrt_f32(x, &sqrt_x);
 
 		  // Newty-Raphsy Function for Sqrt
-		  newtonRaphsonSqrt(x, epsilon, maxIter, &sqrt_x);
+		  //newtonRaphsonSqrt(x, epsilon, maxIter, &sqrt_x);
+
+		  // C Transcendental Solver
+		  //transcend(x0, omega, phi, epsilon, maxIter, &root);
+
+		  // ASM Transcendental Solver
+		  asmTrans(x0, omega, phi, epsilon, maxIter, &root);
 
 	  }
 	  ITM_Port32(31) = 2;
