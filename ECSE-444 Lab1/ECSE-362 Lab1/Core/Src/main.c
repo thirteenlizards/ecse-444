@@ -108,8 +108,9 @@ int main(void)
   float32_t epsilon = 0.00000001;
   uint16_t maxIter = 1000;
   float32_t x0 = 0.5f;
-  float32_t omega = 1.0f;
-  float32_t phi = PI_F * 0.25f;
+  float32_t omega = 0.75f;
+  //float32_t phi = PI_F * 0.75f;
+  float32_t phi = 5.75;
   float32_t root;
 
   /* USER CODE END 2 */

@@ -75,72 +75,76 @@ loop:
 	//B end				// TEMP: branch directly to end
 
 	// calculate x^2
-	//VMUL.F32 S11, S9, S9
+	VMUL.F32 S11, S9, S9
 
 	// calculate fVal = x^2 - cos(omega*x + phi)
-	//VSUB.F32 S4, S11, S8
+	VSUB.F32 S4, S11, S8
 
 
 // f'(x) = 2*x + omega*sin(omega*x + phi)
 
 	// calculate sin(omega*x + phi)
-	//VMOV S0, S10		// move funciton argument into S0
-	//BL arm_sin_f32  // call sine function, output put into S0
-	//VMOV S8, S0		// move output from S0 into S8
+	VMOV S0, S10		// move funciton argument into S0
+	VPUSH.32 {S1-S15} 		// caller-saved S registers
+	PUSH {R0-R3, LR} 	// caller-saved R registers and LR
+	BL arm_sin_f32  // call sine function, output put into S0
+	POP {R0-R3, LR} 	// caller-saved R registers and LR
+	VPOP.32 {S1-S15} 		// caller-saved S registers
+	VMOV S8, S0		// move output from S0 into S8
 
 	// calculate omega*sin(omega*x + phi)
-	//VMUL.F32 S8, S1, S8
+	VMUL.F32 S8, S1, S8
 
 	// calculate 2*x
-	//VMUL.F32 S11, S9, S13
+	VMUL.F32 S11, S9, S13
 
 	// calculate dfVal = 2*x + omega*sin(omega*x + phi)
-	//VADD.F32 S5, S11, S8
+	VADD.F32 S5, S11, S8
 
 // Compute next x value
 
 	// compute fVal/dfVal
-	//VDIV.F32 S8, S4, S5
+	VDIV.F32 S8, S4, S5
 
 	// compute xNext = xCurrent -fVal/dfVal
-	//VSUB.F32 S6, S9, S8
+	VSUB.F32 S6, S9, S8
 
 // Check epsilon
 
 	// diff = xNext - xCurrent;
-	//VSUB.F32 S8, S6, S9
+	VSUB.F32 S8, S6, S9
 
 	// fabs(diff)
-	//VABS.F32 S8, S8
+	VABS.F32 S8, S8
 
 	// if (fabs(diff) < epsilon)
-	VCMP.F32 S8, S13 // TEMP: compare output of cosine to value 2
-	//VCMP.F32 S8, S3
+	//VCMP.F32 S8, S13 // TEMP: compare output of cosine to value 2
+	VCMP.F32 S8, S3
 	VMRS APSR_nzcv, FPSCR	// Transfer flags from FPSCR to APSR
-	BLT success				// TEMP: branch to success
-	//BLT success 			// if comparison succeeds, done
+	//BLT success				// TEMP: branch to success
+	BLT success 			// if comparison succeeds, done
 
 // Check number of iterations
-	//CMP R2, R0
-	//BGE fail
+	CMP R2, R0
+	BGE fail
 
 // Else, prepare for next iteration
 	// xCurrent = xNext;
-	//VMOV S9, S6
-	//B loop
+	VMOV S9, S6
+	B loop
 
 
 
 success:
 	// *root = xNext;
 	// store xNext at memory location for the root
-	//VSTR.F32 S6, [R1]
+	VSTR.F32 S6, [R1]
 	B end
 
 
 fail:
-	//VSTR.F32 S12, [R1]
-	//B end
+	VSTR.F32 S12, [R1]
+	B end
 
 
 end:
