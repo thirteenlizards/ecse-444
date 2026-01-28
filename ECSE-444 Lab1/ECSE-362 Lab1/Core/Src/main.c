@@ -23,8 +23,10 @@
 /* USER CODE BEGIN Includes */
 #define ARM_MATH_CM4
 #include "arm_math.h"
-
 #include "lab1math.h"
+#include <math.h>
+
+#define PI_F     3.1415927f
 
 //#include "cmax.c"
 /* USER CODE END Includes */
@@ -107,7 +109,7 @@ int main(void)
   uint16_t maxIter = 1000;
   float32_t x0 = 0.5f;
   float32_t omega = 1.0f;
-  float32_t phi = 1.0f;
+  float32_t phi = PI_F * 0.25f;
   float32_t root;
 
   /* USER CODE END 2 */
