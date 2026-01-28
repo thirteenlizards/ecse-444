@@ -19,9 +19,7 @@
 /**
 * uint8_t transcend(float x0, float omega, float phi, float epsilon, uint16_t maxIter, float *root) {
 *
-// by calling convention, s16-s31 are preserved and s0-s15 are not
 
-before:
 * S0 = x0, initial guess for x
 * S1 = omega
 * S2 = phi
@@ -42,39 +40,39 @@ asmTrans:
 // S8 = imm. register
 // S10 = omega*x + phi
 // S11 = imm. register
-// S12 = 0 register
-// S13 = 2 register
-// S14 = 1 register
+// R3 = imm. value into float register
 
-	//VMOV S9, S0 // move xCurrent = x0 from S0 to S9
-	//MOV R2, #0 // set loop counter to 0
-	//VLDR.F32 S12, =zero
-	//VLDR.F32 S13, =two
+	VMOV S9, S0 			// move xCurrent = x0 from S0 to S9
+	MOV R2, #0 				// set loop counter to 0
+	LDR R3, =0x00000000 	// 0 as int32
+	VMOV S12, R3
+	LDR R3, =0x40000000 	//2 as int32
+	VMOV S13, R3
 
 loop:
 
 // Increment loop counter
-	//ADD R2, R2, #1
+	ADD R2, R2, #1
 
 
 // f(x) = x^2 - cos(omega*x + phi)
 
 	// calculate omega*x
-	//VMUL.F32 S8, S1, S9 // VMUL Sd Sn Sm
+	VMUL.F32 S8, S1, S9 // VMUL Sd Sn Sm
 
 	// calculate (omega*x) + phi
-	//VADD.F32 S10, S8, S2 // VADD Sd Sn Sm
+	VADD.F32 S10, S8, S2 // VADD Sd Sn Sm
 
 	// calculate cos((omega*x) + phi)
-	//VMOV S0, S10 		// move function argument into S0
-	VMOV S0, S2			// TEMP: use phi as function argument
+	VMOV S0, S10 		// move function argument into S0
+	//VMOV S0, S2			// TEMP: use phi as function argument
 	VPUSH.32 {S1-S15} 		// caller-saved S registers
 	PUSH {R0-R3, LR} 	// caller-saved R registers and LR
 	BL arm_cos_f32		// cal cosine function, output put in S0
 	POP {R0-R3, LR} 	// caller-saved R registers and LR
 	VPOP.32 {S1-S15} 		// caller-saved S registers
 	VMOV S8, S0			// move output from S0 into S8
-	B end				// TEMP: branch directly to end
+	//B end				// TEMP: branch directly to end
 
 	// calculate x^2
 	//VMUL.F32 S11, S9, S9
@@ -116,8 +114,10 @@ loop:
 	//VABS.F32 S8, S8
 
 	// if (fabs(diff) < epsilon)
+	VCMP.F32 S8, S13 // TEMP: compare output of cosine to value 2
 	//VCMP.F32 S8, S3
-	//VMRS APSR_nzcv, FPSCR	// Transfer flags from FPSCR to APSR
+	VMRS APSR_nzcv, FPSCR	// Transfer flags from FPSCR to APSR
+	BLT success				// TEMP: branch to success
 	//BLT success 			// if comparison succeeds, done
 
 // Check number of iterations
@@ -135,7 +135,7 @@ success:
 	// *root = xNext;
 	// store xNext at memory location for the root
 	//VSTR.F32 S6, [R1]
-	//B end
+	B end
 
 
 fail:
@@ -145,12 +145,6 @@ fail:
 
 end:
 	BX LR
-
-two:
-	.float 2.0
-
-zero:
-	.float 0.0
 
 
 
