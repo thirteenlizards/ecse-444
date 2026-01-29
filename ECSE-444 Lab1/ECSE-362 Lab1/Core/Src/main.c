@@ -103,14 +103,14 @@ int main(void)
 	//	  82.70, 77.73};
 
   // Variables
-  //float32_t x = 25;			// value to find square root of
-  //float32_t sqrt_x;		// square root of value
+  float32_t x = 25.65;			// value to find square root of
+  float32_t sqrt_x;		// square root of value
   float32_t epsilon = 0.00000001;
   uint16_t maxIter = 1000;
   float32_t x0 = 0.5f;
-  float32_t omega = 0.75f;
+  float32_t omega = 1.0f;
   //float32_t phi = PI_F * 0.75f;
-  float32_t phi = 5.75;
+  float32_t phi = 1.0f;
   float32_t root;
 
   /* USER CODE END 2 */
@@ -130,17 +130,19 @@ int main(void)
 	  ITM_Port32(31) = 1;
 	  for (uint32_t i=0; i<1000; i++) {
 
+		  // For correct timing analysis, comment out all but one target function for analysis
+
 		  // ASM Function for Sqrt
-		  //asmSqrt(x, &sqrt_x);
+		  asmSqrt(x, &sqrt_x);
 
 		  // CMSIS Function for Sqrt
-		  //arm_sqrt_f32(x, &sqrt_x);
+		  arm_sqrt_f32(x, &sqrt_x);
 
 		  // Newty-Raphsy Function for Sqrt
-		  //newtonRaphsonSqrt(x, epsilon, maxIter, &sqrt_x);
+		  newtonRaphsonSqrt(x, epsilon, maxIter, &sqrt_x);
 
 		  // C Transcendental Solver
-		  //transcend(x0, omega, phi, epsilon, maxIter, &root);
+		  transcend(x0, omega, phi, epsilon, maxIter, &root);
 
 		  // ASM Transcendental Solver
 		  asmTrans(x0, omega, phi, epsilon, maxIter, &root);
