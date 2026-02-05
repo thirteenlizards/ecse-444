@@ -96,6 +96,19 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
+	  // If button is pressed
+	 if (HAL_GPIO_ReadPin(GPIOC, 13)) {
+
+		 // Turn LED ON
+		 HAL_GPIO_WritePin(GPIOA, 5, 1);
+
+		 }
+	 else {
+
+		 // Turn LED off when button is not pressed
+		 HAL_GPIO_WritePin(GPIOA, 5, 1);
+	 }
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
