@@ -97,16 +97,16 @@ int main(void)
     /* USER CODE END WHILE */
 
 	  // If button is pressed
-	 if (HAL_GPIO_ReadPin(GPIOC, 13)) {
+	 if (!HAL_GPIO_ReadPin(B2_GPIO_Port, B2_Pin)) {
 
 		 // Turn LED ON
-		 HAL_GPIO_WritePin(GPIOA, 5, 1);
+		 HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 
 		 }
 	 else {
 
 		 // Turn LED off when button is not pressed
-		 HAL_GPIO_WritePin(GPIOA, 5, 1);
+		 HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	 }
 
     /* USER CODE BEGIN 3 */

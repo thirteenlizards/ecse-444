@@ -39,13 +39,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  17 .debug_line   000061a7  00000000  00000000  00031f32  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000fa0f9  00000000  00000000  000380d9  2**0
+ 18 .debug_str    000fa105  00000000  00000000  000380d9  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  001321d2  2**0
+ 19 .comment      00000043  00000000  00000000  001321de  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00001544  00000000  00000000  00132218  2**2
+ 20 .debug_frame  00001544  00000000  00000000  00132224  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000066  00000000  00000000  0013375c  2**0
+ 21 .debug_line_str 00000072  00000000  00000000  00133768  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -113,34 +113,33 @@ int main(void)
     /* USER CODE END WHILE */
 
 	  // If button is pressed
-	 if (HAL_GPIO_ReadPin(GPIOC, 13)) {
- 800020c:	210d      	movs	r1, #13
- 800020e:	480a      	ldr	r0, [pc, #40]	@ (8000238 <main+0x3c>)
- 8000210:	f000 fc42 	bl	8000a98 <HAL_GPIO_ReadPin>
- 8000214:	4603      	mov	r3, r0
- 8000216:	2b00      	cmp	r3, #0
- 8000218:	d006      	beq.n	8000228 <main+0x2c>
+	 if (!HAL_GPIO_ReadPin(B2_GPIO_Port, B2_Pin)) {
+ 800020c:	f44f 5100 	mov.w	r1, #8192	@ 0x2000
+ 8000210:	4809      	ldr	r0, [pc, #36]	@ (8000238 <main+0x3c>)
+ 8000212:	f000 fc41 	bl	8000a98 <HAL_GPIO_ReadPin>
+ 8000216:	4603      	mov	r3, r0
+ 8000218:	2b00      	cmp	r3, #0
+ 800021a:	d106      	bne.n	800022a <main+0x2e>
 
 		 // Turn LED ON
-		 HAL_GPIO_WritePin(GPIOA, 5, 1);
- 800021a:	2201      	movs	r2, #1
- 800021c:	2105      	movs	r1, #5
- 800021e:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
- 8000222:	f000 fc51 	bl	8000ac8 <HAL_GPIO_WritePin>
- 8000226:	e7f1      	b.n	800020c <main+0x10>
+		 HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+ 800021c:	2201      	movs	r2, #1
+ 800021e:	2120      	movs	r1, #32
+ 8000220:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
+ 8000224:	f000 fc50 	bl	8000ac8 <HAL_GPIO_WritePin>
+ 8000228:	e7f0      	b.n	800020c <main+0x10>
 
 		 }
 	 else {
 
 		 // Turn LED off when button is not pressed
-		 HAL_GPIO_WritePin(GPIOA, 5, 1);
- 8000228:	2201      	movs	r2, #1
- 800022a:	2105      	movs	r1, #5
- 800022c:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
- 8000230:	f000 fc4a 	bl	8000ac8 <HAL_GPIO_WritePin>
-	 if (HAL_GPIO_ReadPin(GPIOC, 13)) {
- 8000234:	e7ea      	b.n	800020c <main+0x10>
- 8000236:	bf00      	nop
+		 HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+ 800022a:	2200      	movs	r2, #0
+ 800022c:	2120      	movs	r1, #32
+ 800022e:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
+ 8000232:	f000 fc49 	bl	8000ac8 <HAL_GPIO_WritePin>
+	 if (!HAL_GPIO_ReadPin(B2_GPIO_Port, B2_Pin)) {
+ 8000236:	e7e9      	b.n	800020c <main+0x10>
  8000238:	48000800 	.word	0x48000800
 
 0800023c <SystemClock_Config>:
