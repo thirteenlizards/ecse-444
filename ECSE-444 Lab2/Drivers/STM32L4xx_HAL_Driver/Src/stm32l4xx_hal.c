@@ -150,8 +150,7 @@ HAL_TickFreqTypeDef uwTickFreq = HAL_TICK_FREQ_DEFAULT;  /* 1KHz */
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_Init(void)
-{
-  HAL_StatusTypeDef  status = HAL_OK;
+{  HAL_StatusTypeDef  status = HAL_OK;
 
   /* Configure Flash prefetch, Instruction cache, Data cache */
   /* Default configuration at reset is:                      */
