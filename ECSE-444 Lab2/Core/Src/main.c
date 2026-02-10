@@ -17,8 +17,11 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#define ARM_MATH_CM4
+#include "arm_math.h"
 #include "main.h"
 #include "stdbool.h"
+#include "math.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -46,6 +49,9 @@ DAC_HandleTypeDef hdac1;
 /* USER CODE BEGIN PV */
 uint8_t sawtooth=0;
 uint8_t triangle=0;
+uint8_t sine=0;
+float radians=0.0;
+float radians_increment=(5.625*3.14)/180;
 bool triangle_up=true;
 bool filler=true;
 /* USER CODE END PV */
@@ -69,6 +75,7 @@ static void MX_DAC1_Init(void);
   */
 int main(void)
 {
+
 
   /* USER CODE BEGIN 1 */
 
@@ -94,6 +101,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
   /* USER CODE END 2 */
 
@@ -116,37 +124,51 @@ int main(void)
 	  }
 		*/
 
-
+	  /*
 	  //Sawtooth Wave generation
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sawtooth);
-	  if (sawtooth < 254) {
-	  	sawtooth += 2;
-	  } else {
-	  	sawtooth=0;
+	  if (sawtooth < 252) {
+		  sawtooth += 4;
 	  }
-
+	  else {
+		  sawtooth=0;
+	  }
+		*/
+	  /*
 	  //Triangle wave generation
 	  //DAC change value is double of sawtooth so that they have the same period
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, triangle);
-	  	  //Ascending section of triangle wave
-	  	  if(triangle_up==true){
-	  	  	  if (triangle < 252) {
-				triangle += 4;
-			  } else {
-				triangle_up=false;
-			  }
+	  //Ascending section of triangle wave
+	  if(triangle_up==true){
+		  if (triangle < 248) {
+			triangle += 8;
+		  }
+		  else {
+			triangle_up=false;
+		  }
+	  }
+	  //Descending section of triangle wave
+	  else{
+		  if (triangle > 0) {
+			  triangle -= 8;
+		  } else {
+			  triangle_up=true;
+		  }
+	  }
+	  */
+	  /*
+	  //Sine Wave generation
+	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
+	  if (radians < 6.27) {
+	  		  radians += radians_increment;
+	  	  } else {
+	  		  radians=0;
 	  	  }
-	  	  //Descending section of triangle wave
-	  	  else{
-	  		  if (triangle > 0) {
-	  			  triangle -= 4;
-	  		  } else {
-	  			  triangle_up=true;
-	  		  }
-	  	  }
+	  sine = roundf(127.0 * (1.0 + arm_sin_f32(radians)));
+
 
 	  //Loop to delay time between increments
-	  for(int i = 0; i<1000; i++)
+	  for(uint8_t i = 0; i<127; i++)
 	  {
 		  //Filler logic to stop compiler from deleting this loop
 		  if(filler==true){
@@ -156,6 +178,7 @@ int main(void)
 			  filler = true;
 		  }
 	  }
+		*/
 	  //HAL_Delay(1);
   }
   /* USER CODE END 3 */
