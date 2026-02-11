@@ -30,6 +30,19 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+// Enum WaveType is three supported waveform shapes.
+typedef enum {
+	WAVE_TRIANGLE = 0,
+	WAVE_SAW = 1,
+	WAVE_SINE = 2
+}WaveType;
+
+// EnumMode between fixed and temperature outputs
+typedef enum {
+  MODE_WAVE = 0,  // LED off; output fixed waveform.
+  MODE_TEMP = 1  // LED on; waveform depends on temperature sensor.
+} Mode;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -79,11 +92,22 @@ bool 		triangle_up = true;
 bool 		filler = true;
 
 // Temperature Sensor Variables
-float 	    vrefRatio = 1.0; // (VREF+/VREFINT)
-float 	    temperature = 0;  // store actual temperature value
-uint16_t    tempAdc = 0; 	  // store ADC output corresponding to temperature value
-uint16_t 	vrefAdc	= 0;	  // store ADC output corresponding to voltage reference
-float		calibTempAdc = 0; // V_TEMP * (VREF+/VREFINT)
+float 	    vrefRatio = 1.0; 	 // (VREF+/VREFINT)
+float 	    temperature = 25.0;  // store actual temperature value
+uint16_t    tempAdc = 0; 	     // store ADC output corresponding to temperature value
+uint16_t 	vrefAdc	= 0;	  	 // store ADC output corresponding to voltage reference
+float		calibTempAdc = 0; 	 // V_TEMP * (VREF+/VREFINT)
+
+// Control Flow Variables
+
+// Global application state.
+static Mode mode = MODE_FIXED;
+static WaveType fixedWave = WAVE_TRIANGLE;  // Currently selected fixed waveform.
+static WaveType tempWave  = WAVE_SINE;      // Base waveform for temp controlled mode.
+
+// Button debounce state.
+static uint8_t button_prev_state = 0;
+static uint32_t last_button_toggle_ms = 0;
 
 /* USER CODE END PV */
 
@@ -495,6 +519,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static void Sine_Wave(void) {
+
+}
 
 /* USER CODE END 4 */
 
