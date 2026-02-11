@@ -21,7 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#define ARM_MATH_CM4
+#include "arm_math.h"
+#include "stdbool.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,6 +34,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+// Define Constants for Temperature Sensor
+
+#define TS_CAL1_TEMP 	30.0f
+#define TS_CAL2_TEMP 	110.0f
+
+// 32 bit address pointing to 16 bit memory spaces
+#define TS_CAL1 		*(uint16_t*)(uint32_t)0x1FFF75A8
+#define TS_CAL2 		*(uint16_t*)(uint32_t)0x1FFF75CA
+#define VREFINT_CAL 	*(uint16_t*)(uint32_t)0x1FFF75AA
+
 
 /* USER CODE END PD */
 
@@ -45,6 +59,8 @@ ADC_HandleTypeDef hadc1;
 DAC_HandleTypeDef hdac1;
 
 /* USER CODE BEGIN PV */
+
+// Wave Generation Variables
 uint8_t sawtooth=0;
 uint8_t triangle=0;
 uint8_t sine=0;
@@ -52,6 +68,12 @@ float radians=0.0;
 float radians_increment=(5.625*3.14)/180;
 bool triangle_up=true;
 bool filler=true;
+
+// Temperature Sensor Variables
+float vref_ratio = 1.0; // assumes theoretical = actual
+float temperature = 0;  // store actual temperature value
+float tempAdc = 0; 	  // store ADC output corresponding to temperature value
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +99,12 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
+	// Constant used for calculating temperature from ADC reading
+	uint16_t ts_cal1_val = TS_CAL1; // FOR DEBUGGING
+	uint16_t ts_cal2_val = TS_CAL2; // FOR DEBUGGING
+	uint16_t vrefint_val = VREFINT_CAL;	// FOR DEBUGGING
+	float tempConst = (float)(TS_CAL2_TEMP - TS_CAL1_TEMP) / (float)(TS_CAL2 - TS_CAL1);
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -99,13 +127,16 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC1_Init();
   MX_ADC1_Init();
+
   /* USER CODE BEGIN 2 */
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
   /* USER CODE END 2 */
 
-  /* Infinite loop */
+
   /* USER CODE BEGIN WHILE */
+
+  /* Infinite loop */
   while (1)
   {
     /* USER CODE END WHILE */
@@ -124,7 +155,7 @@ int main(void)
 		*/
 
 	  /*
-	  //Sawtooth Wave generation
+	  // Sawtooth Wave Output to Speaker
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sawtooth);
 	  if (sawtooth < 252) {
 		  sawtooth += 4;
@@ -132,9 +163,9 @@ int main(void)
 	  else {
 		  sawtooth=0;
 	  }
-		*/
+
 	  /*
-	  //Triangle wave generation
+	  // Triangle Wave Output to Speaker
 	  //DAC change value is double of sawtooth so that they have the same period
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, triangle);
 	  //Ascending section of triangle wave
@@ -155,8 +186,9 @@ int main(void)
 		  }
 	  }
 	  */
+
 	  /*
-	  //Sine Wave generation
+	  //Sine Wave Output to Speaker
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
 	  if (radians < 6.27) {
 	  		  radians += radians_increment;
@@ -166,8 +198,11 @@ int main(void)
 	  sine = roundf(127.0 * (1.0 + arm_sin_f32(radians)));
 
 
-	  //Loop to delay time between increments
-	  for(uint8_t i = 0; i<127; i++)
+ */
+	  ///*
+
+	  //Loop to delay time between increments (for all wave generation)
+	  for(uint8_t i = 0; i<127; i++) // iterator max (255 -> uint8)
 	  {
 		  //Filler logic to stop compiler from deleting this loop
 		  if(filler==true){
@@ -177,7 +212,7 @@ int main(void)
 			  filler = true;
 		  }
 	  }
-		*/
+		//*/
 	  //HAL_Delay(1);
   }
   /* USER CODE END 3 */
