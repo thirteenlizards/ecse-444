@@ -52,9 +52,23 @@ typedef enum {
 #define ON  1
 #define OFF  0
 
-#define BUTTON_LIGHT OFF
-#define WAVE_DELAY   OFF
-#define ADC_SAMPLE   ON
+// Choose ON/OFF
+#define BUTTON_LIGHT 	OFF
+
+// Choose single wave + delay is automatically included
+#define WAVE_SAWTOOTH	OFF
+#define WAVE_TRIANGLE	OFF
+#define WAVE_SINE		OFF
+
+#if WAVE_SAWTOOTH || WAVE_TRIANGLE || WAVE_SINE
+	#define WAVE_DELAY   	ON
+#else
+	#define WAVE_DELAY		OFF
+#endif
+
+// Choose ON/OFF
+#define ADC_SAMPLE   	OFF
+
 
 
 // Define Constants for Temperature Sensor
@@ -101,7 +115,7 @@ float		calibTempAdc = 0; 	 // V_TEMP * (VREF+/VREFINT)
 // Control Flow Variables
 
 // Global application state.
-static Mode mode = MODE_FIXED;
+static Mode mode = MODE_WAVE;
 static WaveType fixedWave = WAVE_TRIANGLE;  // Currently selected fixed waveform.
 static WaveType tempWave  = WAVE_SINE;      // Base waveform for temp controlled mode.
 
@@ -116,7 +130,14 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_ADC1_Init(void);
+
 /* USER CODE BEGIN PFP */
+
+// User Function Prototypes
+	// See User Code Area 4 for definitions
+static void Sawtooth_Wave(uint8_t temp);
+static void Triangle_Wave(void);
+static void Sine_Wave(void);
 
 /* USER CODE END PFP */
 
@@ -198,7 +219,7 @@ int main(void)
 
 #endif
 
-	  /*
+#if WAVE_SAWTOOTH== ON
 	  // Sawtooth Wave Output to Speaker
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sawtooth);
 	  if (sawtooth < 252) {
@@ -207,9 +228,9 @@ int main(void)
 	  else {
 		  sawtooth=0;
 	  }
-	  */
+#endif
 
-	  /*
+#if WAVE_TRIANGLE== ON
 	  // Triangle Wave Output to Speaker
 	  //DAC change value is double of sawtooth so that they have the same period
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, triangle);
@@ -230,9 +251,9 @@ int main(void)
 			  triangle_up=true;
 		  }
 	  }
-	  */
+#endif
 
-	  /*
+#if WAVE_SINE== ON
 	  //Sine Wave Output to Speaker
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
 	  if (radians < 6.27) {
@@ -242,7 +263,8 @@ int main(void)
 	  	  }
 	  sine = roundf(127.0 * (1.0 + arm_sin_f32(radians)));
 
- */
+#endif
+
 #if WAVE_DELAY == ON
 	  //Loop to delay time between increments (for all wave generation)
 	  for(uint8_t i = 0; i<127; i++) // iterator max (255 -> uint8)
@@ -289,6 +311,47 @@ int main(void)
 	HAL_Delay(200);
 
 #endif
+
+	if (mode == MODE_WAVE) {
+
+		// TO DO: Turn LED ON
+
+		// Next output based on wave type
+			// The index published to control where in the wave you are
+			// is reset and/or augmented in the individual wave function
+			// and is a global variable within the file main.c
+
+
+		switch(fixedWave) {
+		case WAVE_SAW:
+			// TO DO: function to continue saw wave
+			break;
+		case WAVE_TRIANGLE:
+			// TO DO: function to continue triangle wave
+			break;
+		case WAVE_SINE:
+			// TO DO: function to continue sine wave
+			break;
+		default:
+			break;
+		}
+
+		// Change to next wave type
+		if (fixedWave == 2) { // if max enum, loop back around
+			fixedWave = 0;
+		}
+		else {
+			fixedWave++;
+		}
+
+	}
+	else { // else (mode == MODE_TEMP)
+
+		// TO DO: turn LED OFF
+		// TO DO: sine wave function with variable magnitude
+
+	}
+
 
   } // while(1)
 
@@ -520,7 +583,23 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+// User Defined Functions
+
+static void Sawtooth_Wave(uint8_t temp) {
+
+	// put code here to publish 1 DAC value for a sawtooth wave whose amplitude is scaled by "temp"
+
+}
+
+static void Triangle_Wave(void) {
+
+	// put code here to publish 1 DAC value for a triangle wave
+
+}
+
 static void Sine_Wave(void) {
+
+	// put code here to publish 1 DAC value for a sine wave
 
 }
 
