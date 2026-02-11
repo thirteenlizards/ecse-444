@@ -35,6 +35,15 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// Define Statements for Flow Control
+#define ON  1
+#define OFF  0
+
+#define BUTTON_LIGHT OFF
+#define WAVE_DELAY   OFF
+#define ADC_SAMPLE   ON
+
+
 // Define Constants for Temperature Sensor
 
 #define TS_CAL1_TEMP 	30.0f
@@ -61,18 +70,19 @@ DAC_HandleTypeDef hdac1;
 /* USER CODE BEGIN PV */
 
 // Wave Generation Variables
-uint8_t sawtooth=0;
-uint8_t triangle=0;
-uint8_t sine=0;
-float radians=0.0;
-float radians_increment=(5.625*3.14)/180;
-bool triangle_up=true;
-bool filler=true;
+uint8_t 	sawtooth = 0;
+uint8_t 	triangle = 0;
+uint8_t 	sine = 0;
+float 		radians = 0.0;
+float 		radians_increment = (5.625*3.14)/180;
+bool 		triangle_up = true;
+bool 		filler = true;
 
 // Temperature Sensor Variables
-float vref_ratio = 1.0; // assumes theoretical = actual
-float temperature = 0;  // store actual temperature value
-float tempAdc = 0; 	  // store ADC output corresponding to temperature value
+float 	    vref_ratio = 1.0; // assumes theoretical = actual
+float 	    temperature = 0;  // store actual temperature value
+uint16_t    tempAdc = 0; 	  // store ADC output corresponding to temperature value
+uint16_t 	vrefAdc	= 0;	  // store ADC output corresponding to
 
 /* USER CODE END PV */
 
@@ -129,8 +139,14 @@ int main(void)
   MX_ADC1_Init();
 
   /* USER CODE BEGIN 2 */
+
+  // Calibrate ADC
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+
+  // Start DAC Channels 1-2
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
+
   /* USER CODE END 2 */
 
 
@@ -142,7 +158,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  /*
+
+#if BUTTON_LIGHT == ON
+
 	  //If button is pressed
 	  if (!HAL_GPIO_ReadPin(B2_GPIO_Port, B2_Pin)) {
 		  // Turn LED ON
@@ -152,7 +170,8 @@ int main(void)
 		  // Turn LED off when button is not pressed
 		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 	  }
-		*/
+
+#endif
 
 	  /*
 	  // Sawtooth Wave Output to Speaker
@@ -163,6 +182,7 @@ int main(void)
 	  else {
 		  sawtooth=0;
 	  }
+	  */
 
 	  /*
 	  // Triangle Wave Output to Speaker
@@ -197,10 +217,8 @@ int main(void)
 	  	  }
 	  sine = roundf(127.0 * (1.0 + arm_sin_f32(radians)));
 
-
  */
-	  ///*
-
+#if WAVE_DELAY == ON
 	  //Loop to delay time between increments (for all wave generation)
 	  for(uint8_t i = 0; i<127; i++) // iterator max (255 -> uint8)
 	  {
@@ -212,11 +230,41 @@ int main(void)
 			  filler = true;
 		  }
 	  }
-		//*/
-	  //HAL_Delay(1);
-  }
+	  //HAL_Delay(1); // keep commented
+
+#endif
+
+#if ADC_SAMPLE == ON
+
+//	  If you are using the STM32L4+ variant and discontinuous conversion, note that the first
+//	  sequence of conversion function calls will use Rank 1 and the second will use Rank 2.
+//	  Additional conversions will alternate between the two. (With thanks to Jacoby Roy.)
+//	  i.e. have to call "HAL_ADC_Start(...)" twice to get both readings
+
+	// Poll Temperature Sensor (Rank 1)
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	tempAdc = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+
+	// Poll VREFINT (Rank 2)
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	vrefAdc = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+
+	// Wait ~200ms
+	HAL_Delay(200);
+
+
+
+#endif
+
+  } // while(1)
+
+
   /* USER CODE END 3 */
-}
+} // main()
 
 /**
   * @brief System Clock Configuration
