@@ -47,7 +47,7 @@
 // Define Constants for Temperature Sensor
 
 #define TS_CAL1_TEMP 	30.0f
-#define TS_CAL2_TEMP 	110.0f
+#define TS_CAL2_TEMP 	130.0f
 
 // 32 bit address pointing to 16 bit memory spaces
 #define TS_CAL1 		*(uint16_t*)(uint32_t)0x1FFF75A8
@@ -79,10 +79,11 @@ bool 		triangle_up = true;
 bool 		filler = true;
 
 // Temperature Sensor Variables
-float 	    vref_ratio = 1.0; // assumes theoretical = actual
+float 	    vrefRatio = 1.0; // (VREF+/VREFINT)
 float 	    temperature = 0;  // store actual temperature value
 uint16_t    tempAdc = 0; 	  // store ADC output corresponding to temperature value
-uint16_t 	vrefAdc	= 0;	  // store ADC output corresponding to
+uint16_t 	vrefAdc	= 0;	  // store ADC output corresponding to voltage reference
+float		calibTempAdc = 0; // V_TEMP * (VREF+/VREFINT)
 
 /* USER CODE END PV */
 
@@ -114,6 +115,7 @@ int main(void)
 	uint16_t ts_cal2_val = TS_CAL2; // FOR DEBUGGING
 	uint16_t vrefint_val = VREFINT_CAL;	// FOR DEBUGGING
 	float tempConst = (float)(TS_CAL2_TEMP - TS_CAL1_TEMP) / (float)(TS_CAL2 - TS_CAL1);
+	float tempTerm = 0 ; // intermediete calculation term
 
   /* USER CODE END 1 */
 
@@ -137,7 +139,6 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC1_Init();
   MX_ADC1_Init();
-
   /* USER CODE BEGIN 2 */
 
   // Calibrate ADC
@@ -149,7 +150,7 @@ int main(void)
 
   /* USER CODE END 2 */
 
-
+  /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
   /* Infinite loop */
@@ -253,10 +254,19 @@ int main(void)
 	vrefAdc = HAL_ADC_GetValue(&hadc1);
 	HAL_ADC_Stop(&hadc1);
 
+	// Calculate (VREF+/VREFINT), or default to 1
+	if (vrefAdc != 0) {
+		vrefRatio = (float)VREFINT_CAL / (float)vrefAdc;
+	}
+	else {
+		vrefRatio = 1;
+	}
+	    // Calculate temperature with all scaling applied
+	    float calibAdc = (float)tempAdc * vrefRatio;
+	    temperature = tempConst * (calibAdc - (float)TS_CAL1) + TS_CAL1_TEMP;
+
 	// Wait ~200ms
 	HAL_Delay(200);
-
-
 
 #endif
 
@@ -264,7 +274,7 @@ int main(void)
 
 
   /* USER CODE END 3 */
-} // main()
+}
 
 /**
   * @brief System Clock Configuration
