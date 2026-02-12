@@ -69,6 +69,9 @@ typedef enum {
 // Choose ON/OFF
 #define ADC_SAMPLE   	OFF
 
+// Choose ON/OFF
+#define PART4			ON
+
 
 
 // Define Constants for Temperature Sensor
@@ -104,6 +107,7 @@ float 		radians = 0.0;
 float 		radians_increment = (5.625*3.14)/180;
 bool 		triangle_up = true;
 bool 		filler = true;
+uint8_t 	amplitude = 0; // used when generating temperature-dependant waves
 
 // Temperature Sensor Variables
 float 	    vrefRatio = 1.0; 	 // (VREF+/VREFINT)
@@ -111,8 +115,9 @@ float 	    temperature = 25.0;  // store actual temperature value
 uint16_t    tempAdc = 0; 	     // store ADC output corresponding to temperature value
 uint16_t 	vrefAdc	= 0;	  	 // store ADC output corresponding to voltage reference
 float		calibTempAdc = 0; 	 // V_TEMP * (VREF+/VREFINT)
+static uint32_t last_adc_sample_ms = 0; //
+// static uint32_t current_time_ms = 0; // in button debounce section
 
-// Control Flow Variables
 
 // Global application state.
 static Mode mode = MODE_WAVE;
@@ -120,9 +125,12 @@ static WaveType fixedWave = WAVE_TRIANGLE;  // Currently selected fixed waveform
 static WaveType tempWave  = WAVE_SINE;      // Base waveform for temp controlled mode.
 
 // Button debounce state.
-static uint8_t button_prev_state = 0;
+static uint8_t 	button_prev_state = 0;
+static uint8_t 	button_curr_state = 0;
 static uint32_t last_button_toggle_ms = 0;
-static bool button = true; // FOR DEBUG
+static uint32_t current_time_ms = 0; // also used for ADC
+
+
 
 /* USER CODE END PV */
 
@@ -303,63 +311,144 @@ int main(void)
 	else {
 		vrefRatio = 1;
 	}
-	    // Calculate temperature with all scaling applied
-	    float calibAdc = (float)tempAdc * vrefRatio;
-	    temperature = tempConst * (calibAdc - (float)TS_CAL1) + TS_CAL1_TEMP;
+
+	// Calculate temperature with all scaling applied
+	float calibAdc = (float)tempAdc * vrefRatio;
+	temperature = tempConst * (calibAdc - (float)TS_CAL1) + TS_CAL1_TEMP;
 
 	// Wait ~200ms
 	HAL_Delay(200);
 
 #endif
 
-if (button) { // TO DO: check if button pressed to determine mode (currently just a flag)
+#if PART4 == ON
 
-	// if entering wave mode, change wave type
-	// Change to next wave type
-	if (fixedWave == 2) { // if max enum, loop back around
-		fixedWave = 0;
-	} // if (fixedWave == 2)
-	else {
-		fixedWave++;
-	} // else
+// Check if button is pressed with debouncing
+	button_curr_state = !HAL_GPIO_ReadPin(B2_GPIO_Port, B2_Pin);
 
-	if (mode == MODE_WAVE) {
+	// If button experiences state change
+	if (button_curr_state && !button_prev_state) {
 
-		// TO DO: Turn LED ON
+		current_time_ms = HAL_GetTick();
+
+		// && Enough time has elapsed
+		if ((current_time_ms - last_button_toggle_ms) > 200) {
+
+			last_button_toggle_ms = current_time_ms;
+
+			// Then change mode
+			if (mode == MODE_WAVE) {
+
+				mode = MODE_TEMP;
+				HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+			} // if (mode == MODE_WAVE)
+			else {
+
+				mode = MODE_WAVE;
+				HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+				fixedWave = (fixedWave + 1) % 3; // keep range within 0-2 enum
+			} // else(mode == MODE_TEMP)
+
+		} // if ((current_time_ms - last_button_toggle_ms) > 200)
+
+	} // if (button_current && !button_prev_state)
+
+// Update button state
+	button_prev_state = button_curr_state;
+
+// Send value to DAC based on mode
+
+	// Temperature Mode
+	if (mode == MODE_TEMP) {
+
+		// Sample temperature
+		current_time_ms = HAL_GetTick();
+
+		// TO DO: fix issue when first switch to mode and there is no "lat_adc_sample_ms" value
+
+		if ((current_time_ms - last_adc_sample_ms) > 200) {
+
+			// Update time variables
+			last_adc_sample_ms = current_time_ms;
+
+			// Poll Temperature Sensor (Injected)
+			HAL_ADCEx_InjectedStart(&hadc1);
+			HAL_ADCEx_InjectedPollForConversion(&hadc1, HAL_MAX_DELAY);
+			tempAdc = HAL_ADCEx_InjectedGetValue(&hadc1, 1);
+			HAL_ADCEx_InjectedStop(&hadc1);
+
+			// Poll VREFINT (Non-Injected)
+			HAL_ADC_Start(&hadc1);
+			HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+			vrefAdc = HAL_ADC_GetValue(&hadc1);
+			HAL_ADC_Stop(&hadc1);
+
+			// Calculate (VREF+/VREFINT), or default to 1
+			if (vrefAdc != 0) {
+				vrefRatio = (float)VREFINT_CAL / (float)vrefAdc;
+			} // if (vrefAdc != 0)
+			else {
+				vrefRatio = 1;
+			} // else
+
+			// Calculate temperature with all scaling applied
+			float calibAdc = (float)tempAdc * vrefRatio;
+			temperature = tempConst * (calibAdc - (float)TS_CAL1) + TS_CAL1_TEMP;
+
+			// Map temperature to wave amplitude (20 -40 C -> 0-255)
+				// x = temperature (min(20), max(40))
+				// y = amplitude (min(0), max(255))
+				// y = [(x - xmin)/(xmax - xmin)] *  (ymax - ymin) + ymin
+
+			amplitude = (uint8_t)((temperature - 20.0f) * 12.75f);
+
+			if (amplitude > 255) {
+				amplitude = 255;
+			}
+			else if (amplitude < 0) {
+				amplitude = 0;
+			}
+
+		} // if ((current_time_ms - last_adc_sample_ms) > 200)
+
+		// Send value to DAC (every loop iteration)
+		Sawtooth_Wave(amplitude);
+
+	} // if (mode == MODE_TEMP)
+
+	// Wave Mode
+	else if (mode == MODE_WAVE) {
+
+		switch(fixedWave) {
+		case WAVE_SAW:
+			Sawtooth_Wave(255); // use full amplitude
+			break;
+		case WAVE_TRIANGLE:
+			Triangle_Wave();
+			break;
+		case WAVE_SINE:
+			Sine_Wave();
+			break;
+
+		} // switch(fixedWave)
+
+	} // else if (mode == MODE_WAVE)
 
 
-		// DAC output depending on wave type
-		while(1) {
-				// The wave index published to control where in the wave you are
-				// is reset and/or augmented in the individual wave function
-				// and is a global variable within the file main.c
+// Timing Delay between DAC Updates
 
-			switch(fixedWave) {
-			case WAVE_SAW:
-				Sawtooth_Wave(7);
-				break;
-			case WAVE_TRIANGLE:
-				Triangle_Wave();
-				break;
-			case WAVE_SINE:
-				Sine_Wave();
-				break;
-			default:
-				break;
-			} // switch(fixedWave)
-		}
+	for(uint8_t i = 0; i<127; i++) // iterator max (255 -> uint8)
+		{
+		//Filler logic to stop compiler from deleting this loop
+		if(filler==true){
+			filler = false;
+		} // if
+		else{
+			filler = true;
+		} // else
+	  } // for
 
-
-
-	} // if (mode == MODE_WAVE)
-	else { // else (mode == MODE_TEMP)
-
-		// TO DO: turn LED OFF
-		// TO DO: sine wave function with variable magnitude
-
-	} // else (mode == MODE_TEMP)
-
-} // if (button)
+#endif // PART 4
 
 
   } // while(1)
