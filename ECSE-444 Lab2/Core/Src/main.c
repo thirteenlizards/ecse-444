@@ -364,7 +364,6 @@ int main(void)
 		// Sample temperature
 		current_time_ms = HAL_GetTick();
 
-		// TO DO: fix issue when first switch to mode and there is no "lat_adc_sample_ms" value
 
 		if ((current_time_ms - last_adc_sample_ms) > 200) {
 
@@ -683,7 +682,6 @@ static void MX_GPIO_Init(void)
 
 // User Defined Functions
 
-// TO DO: Add function contents
 static void Sawtooth_Wave(uint8_t amplitude) {
 
 	// make sure ramp doesn't go above on first call
@@ -703,7 +701,6 @@ static void Sawtooth_Wave(uint8_t amplitude) {
 
 }
 
-// TO DO: Add function contents
 static void Triangle_Wave(void) {
 
   // Triangle Wave Output to Speaker
@@ -731,7 +728,6 @@ static void Triangle_Wave(void) {
 
 }
 
-// TO DO: Add function contents
 static void Sine_Wave(void) {
 
   //Sine Wave Output to Speaker

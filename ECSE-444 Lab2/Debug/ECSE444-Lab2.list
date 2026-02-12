@@ -934,7 +934,6 @@ int main(void)
  8000a90:	4a62      	ldr	r2, [pc, #392]	@ (8000c1c <main+0x2a0>)
  8000a92:	6013      	str	r3, [r2, #0]
 
-		// TO DO: fix issue when first switch to mode and there is no "lat_adc_sample_ms" value
 
 		if ((current_time_ms - last_adc_sample_ms) > 200) {
  8000a94:	4b61      	ldr	r3, [pc, #388]	@ (8000c1c <main+0x2a0>)
@@ -1719,11 +1718,11 @@ static void MX_GPIO_Init(void)
  8000f5c:	48000800 	.word	0x48000800
 
 08000f60 <Sawtooth_Wave>:
+
 /* USER CODE BEGIN 4 */
 
 // User Defined Functions
 
-// TO DO: Add function contents
 static void Sawtooth_Wave(uint8_t amplitude) {
  8000f60:	b580      	push	{r7, lr}
  8000f62:	b082      	sub	sp, #8
@@ -1783,7 +1782,6 @@ static void Sawtooth_Wave(uint8_t amplitude) {
 
 08000fb0 <Triangle_Wave>:
 
-// TO DO: Add function contents
 static void Triangle_Wave(void) {
  8000fb0:	b580      	push	{r7, lr}
  8000fb2:	af00      	add	r7, sp, #0
@@ -1856,7 +1854,6 @@ static void Triangle_Wave(void) {
 
 08001018 <Sine_Wave>:
 
-// TO DO: Add function contents
 static void Sine_Wave(void) {
  8001018:	b580      	push	{r7, lr}
  800101a:	b082      	sub	sp, #8
