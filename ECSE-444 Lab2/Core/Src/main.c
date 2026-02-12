@@ -144,7 +144,7 @@ static void MX_ADC1_Init(void);
 
 // User Function Prototypes
 	// See User Code Area 4 for definitions
-static void Sawtooth_Wave(uint8_t temp);
+static void Sawtooth_Wave(uint8_t amplitude);
 static void Triangle_Wave(void);
 static void Sine_Wave(void);
 
@@ -684,14 +684,48 @@ static void MX_GPIO_Init(void)
 // User Defined Functions
 
 // TO DO: Add function contents
-static void Sawtooth_Wave(uint8_t temp) {
+static void Sawtooth_Wave(uint8_t amplitude) {
 
-	// put code here to publish 1 DAC value for a sawtooth wave whose amplitude is scaled by "temp"
+	// make sure ramp doesn't go above on first call
+	if (amplitude == 255) {
+		amplitude = 252;
+	}
+
+	  // Sawtooth Wave Output to Speaker
+	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sawtooth);
+	  if (sawtooth < amplitude) {
+		  sawtooth += 4;
+	  }
+	  else {
+		  sawtooth=0;
+	  }
+
 
 }
 
 // TO DO: Add function contents
 static void Triangle_Wave(void) {
+
+  // Triangle Wave Output to Speaker
+  //DAC change value is double of sawtooth so that they have the same period
+  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, triangle);
+  //Ascending section of triangle wave
+  if(triangle_up==true){
+	  if (triangle < 248) {
+		triangle += 8;
+	  }
+	  else {
+		triangle_up=false;
+	  }
+  }
+  //Descending section of triangle wave
+  else{
+	  if (triangle > 0) {
+		  triangle -= 8;
+	  } else {
+		  triangle_up=true;
+	  }
+  }
 
 	// put code here to publish 1 DAC value for a triangle wave
 
@@ -700,7 +734,14 @@ static void Triangle_Wave(void) {
 // TO DO: Add function contents
 static void Sine_Wave(void) {
 
-	// put code here to publish 1 DAC value for a sine wave
+  //Sine Wave Output to Speaker
+  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
+  if (radians < 6.27) {
+		  radians += radians_increment;
+	  } else {
+		  radians=0;
+	  }
+  sine = roundf(127.0 * (1.0 + arm_sin_f32(radians)));
 
 }
 

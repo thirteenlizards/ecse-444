@@ -3,7 +3,7 @@
 ../Core/Src/main.c:515:13:MX_ADC1_Init	4
 ../Core/Src/main.c:598:13:MX_DAC1_Init	4
 ../Core/Src/main.c:649:13:MX_GPIO_Init	1
-../Core/Src/main.c:687:13:Sawtooth_Wave	1
-../Core/Src/main.c:694:13:Triangle_Wave	1
-../Core/Src/main.c:701:13:Sine_Wave	1
-../Core/Src/main.c:713:6:Error_Handler	1
+../Core/Src/main.c:687:13:Sawtooth_Wave	3
+../Core/Src/main.c:707:13:Triangle_Wave	4
+../Core/Src/main.c:735:13:Sine_Wave	2
+../Core/Src/main.c:754:6:Error_Handler	1

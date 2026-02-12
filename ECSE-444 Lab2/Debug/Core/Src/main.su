@@ -4,6 +4,6 @@
 ../Core/Src/main.c:598:13:MX_DAC1_Init	48	static
 ../Core/Src/main.c:649:13:MX_GPIO_Init	40	static
 ../Core/Src/main.c:687:13:Sawtooth_Wave	16	static
-../Core/Src/main.c:694:13:Triangle_Wave	4	static
-../Core/Src/main.c:701:13:Sine_Wave	4	static
-../Core/Src/main.c:713:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:707:13:Triangle_Wave	8	static
+../Core/Src/main.c:735:13:Sine_Wave	16	static
+../Core/Src/main.c:754:6:Error_Handler	4	static,ignoring_inline_asm
