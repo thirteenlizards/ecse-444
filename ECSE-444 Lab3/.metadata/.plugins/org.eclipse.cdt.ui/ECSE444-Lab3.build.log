@@ -1,0 +1,10 @@
+17:07:55 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
+make -j24 all 
+arm-none-eabi-size  ECSE444-Lab3.elf 
+   text	   data	    bss	    dec	    hex	filename
+  11924	     12	   1764	  13700	   3584	ECSE444-Lab3.elf
+Finished building: default.size.stdout
+ 
+
+17:07:55 Build Finished. 0 errors, 0 warnings. (took 158ms)
+
