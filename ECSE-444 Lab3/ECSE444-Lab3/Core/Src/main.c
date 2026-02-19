@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "arm_math.h"
 
 /* USER CODE END Includes */
 
@@ -39,6 +40,13 @@
 
 #define LED2_Pin GPIO_PIN_14
 #define LED2_Port GPIOB
+
+
+// Define DAC Samples Scaling
+#define DAC_MAX 4095
+#define SAMPLES 44
+#define DAC_MAX 4095
+#define DAC_SCALE (2.0f/3.0f)
 
 /* USER CODE END PD */
 
@@ -62,6 +70,10 @@ static volatile uint32_t last_button_toggle_ms = 0;
 static volatile uint32_t current_time_ms = 0;
 
 // Sine Wave Array
+static volatile uint32_t sine_index = 0;
+static volatile uint32_t sine_wave[SAMPLES];
+
+//
 
 /* USER CODE END PV */
 
@@ -133,6 +145,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -380,9 +394,16 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 	// For Timer 2
 	if (htim == &htim2) {
 
-
-
-	}
+		if (sine_index < SAMPLES) {
+		    float theta = 2.0f * 3.14159265359f * sine_index / SAMPLES;
+		    float value = (DAC_MAX * DAC_SCALE / 2.0f) * (1.0f + arm_sin_f32(theta)); // offset added
+		    sine_wave[sine_index] = (uint32_t)(value + 0.5f); // round to nearest integer
+		    sine_index++;
+		} // if (sine_index <= SAMPLES)
+		else {
+			sine_index = 0;
+		}
+	} //if (htim == &htim2)
 }
 
 /* USER CODE END 4 */
