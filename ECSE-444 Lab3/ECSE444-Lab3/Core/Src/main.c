@@ -132,6 +132,9 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);
 
   // Start DAC
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+
+  // Start DMA
   //HAL_DAC_Start_DMA(&hdac1,				// *hdac: pointer to configuration information
   //                  DAC_CHANNEL_1, 		// Channel: channel
   //                  sine_wave,			// pData: destination peripheral buffer address
