@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="hasShownOverlayPopupBefore" value="true"/>
+	<item key="replaceBarOpen" value="false"/>
+	<list key="searchhistory">
+		<item value="sinf"/>
+		<item value="define"/>
+		<item value="HAL_TIM"/>
+		<item value="LED2_Pin"/>
+		<item value="B1_Pin"/>
+		<item value="htim"/>
+		<item value="HAL_Tim"/>
+		<item value="B1_EXTI13"/>
+		<item value="USER CODE 4"/>
+		<item value="__weak"/>
+		<item value="EXTI"/>
+		<item value="HAL_NVIC"/>
+		<item value="interrupt"/>
+		<item value="void"/>
+		<item value="void HAL"/>
+	</list>
+</section>

@@ -70,8 +70,11 @@ static volatile uint32_t last_button_toggle_ms = 0;
 static volatile uint32_t current_time_ms = 0;
 
 // Sine Wave Array
-static volatile uint32_t sine_index = 0;
-static volatile uint32_t sine_wave[SAMPLES];
+static volatile uint32_t sine_index = 0;		// index into LUT
+static volatile uint32_t sine_wave[SAMPLES];	// LUT
+static float theta;								// Angle based on sine_index
+static float value;								// sine value before scaling for DAC
+static float checkVal;
 
 //
 
@@ -128,6 +131,14 @@ int main(void)
   MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
 
+  // Calculate sine LUT
+  while (sine_index < (SAMPLES)) {
+  		    theta = 2.0f * 3.14159265359f * sine_index / SAMPLES;
+  		    value = (DAC_MAX * DAC_SCALE / 2.0f) * (1.0f + arm_sin_f32(theta)); // offset added
+  		    sine_wave[sine_index] = (uint32_t)(value + 0.5f); // round to nearest integer
+  		    sine_index++;
+  	} // while (sine_index < samples)
+
   // Start Timer 2
   HAL_TIM_Base_Start_IT(&htim2);
 
@@ -141,14 +152,13 @@ int main(void)
   //                  SAMPLES,			// Length: length of data to be transferred from memory to DAC
   //                  DAC_ALIGN_12B_R);   // Alignment
 
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  checkVal = sine_wave[sine_index];
 	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
     /* USER CODE END WHILE */
 
@@ -394,20 +404,15 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
 // HAL_TIM_Base_Start_IT is used OUTSIDE interupt to start timer
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 
-	// For Timer 2
+	// Timer 2 -> increment index into LUT for DAC output
 	if (htim == &htim2) {
+		sine_index++;
+		if (sine_index >= SAMPLES) {
+		    sine_index = 0;
+		} //(sine_index >= SAMPLES)
 
-		if (sine_index < SAMPLES) {
-		    float theta = 2.0f * 3.14159265359f * sine_index / SAMPLES;
-		    float value = (DAC_MAX * DAC_SCALE / 2.0f) * (1.0f + arm_sin_f32(theta)); // offset added
-		    sine_wave[sine_index] = (uint32_t)(value + 0.5f); // round to nearest integer
-		    sine_index++;
-		} // if (sine_index <= SAMPLES)
-		else {
-			sine_index = 0;
-		}
 	} //if (htim == &htim2)
-}
+} //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
 
 /* USER CODE END 4 */
 
