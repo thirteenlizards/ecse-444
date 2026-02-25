@@ -70,8 +70,8 @@ static volatile uint32_t last_button_toggle_ms = 0;
 static volatile uint32_t current_time_ms = 0;
 
 // Sine Wave Array
-static volatile uint8_t sine_index = 0;		// index into LUT
-static volatile uint8_t sine_wave[SAMPLES];	// LUT
+static volatile uint32_t sine_index = 0;		// index into LUT
+static volatile uint32_t sine_wave[SAMPLES];	// LUT
 static float theta;								// Angle based on sine_index
 static float value;								// sine value before scaling for DAC
 static float checkVal;
@@ -135,7 +135,7 @@ int main(void)
   while (sine_index < (SAMPLES)) {
   		    theta = 2.0f * 3.14159265359f * sine_index / SAMPLES;
   		    value = (DAC_MAX * DAC_SCALE / 2.0f) * (1.0f + arm_sin_f32(theta)); // offset added
-  		    sine_wave[sine_index] = (uint8_t)(value + 0.5f); // round to nearest integer
+  		    sine_wave[sine_index] = (uint32_t)(value + 0.5f); // round to nearest integer
   		    sine_index++;
   	} // while (sine_index < samples)
 
@@ -400,8 +400,6 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
 	}
 } // void
 
-/*
- * Commented out while using DMA
 // Timer Interrupt Handler
 // HAL_TIM_Base_Start_IT is used OUTSIDE interupt to start timer
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
@@ -415,7 +413,6 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 
 	} //if (htim == &htim2)
 } //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
-*/
 
 /* USER CODE END 4 */
 

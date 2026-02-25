@@ -400,8 +400,6 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
 	}
 } // void
 
-/*
- * Commented out while using DMA
 // Timer Interrupt Handler
 // HAL_TIM_Base_Start_IT is used OUTSIDE interupt to start timer
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
@@ -415,7 +413,6 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 
 	} //if (htim == &htim2)
 } //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
-*/
 
 /* USER CODE END 4 */
 
