@@ -157,9 +157,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // Removed while using DMA
-	  //checkVal = sine_wave[sine_index];
-	  //HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
+	  checkVal = sine_wave[sine_index];
+	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
