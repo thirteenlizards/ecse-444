@@ -100,6 +100,12 @@ typedef enum  {
 
 State state = IDLE;
 
+// Note sequence variables
+static volatile uint8_t tone_step = 0;
+const float k_values[6] = {8.0f, 10.0f, 12.0f, 14.0f, 16.0f, 18.0f};
+static uint16_t notes[BUFFER_SIZE];
+
+volatile uint8_t note_index = 0;
 volatile bool buffer_ready;
 
 //
@@ -119,6 +125,7 @@ void Stop_Recording(void);
 void Start_Playback(void);
 void Stop_Playback(void);
 void Process_Buffer(void);
+void Generate_Note(float k);
 
 /* USER CODE END PFP */
 
@@ -573,7 +580,7 @@ void Process_Buffer(){
 void Start_Playback() {
 
 	// set state
-	state = PLAYBACK;
+	//tate = PLAYBACK;
 
 	// Start timer to control rate of new data to DAC for output
 	HAL_TIM_Base_Start(&htim2);
@@ -603,49 +610,34 @@ void Stop_Playback() {
 
 
 // Button Interrupt Handler
-void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
-	if (GPIO_Pin == B1_Pin) {
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == B1_Pin) {
+        // Prevent overlapping actions
+        if (state == RECORDING || state == NOTES || state == PLAYBACK) return;
 
-		// TO DO: disabled debouncing for simplicity
+        if (!buffer_ready) {
+            state = RECORDING;
+            Start_Recording();
+        } else {
+            // We have a recording, so play the sequence: Notes -> Sample
+            state = NOTES;
+            note_index = 0;
+            Generate_Note(k_values[note_index]);
+            Start_Playback();
+        }
+    }
+}
 
-		/*
-        // Read current state (active LOW)
-        button_curr_state = !HAL_GPIO_ReadPin(B1_Port, B1_Pin);
 
-        // Detect rising edge (button press)
-        if (button_curr_state && !button_prev_state)
-        {
-            uint32_t current_time_ms = HAL_GetTick();
+// Generate notes
+void Generate_Note(float k) {
+    for (uint32_t i = 0; i < BUFFER_SIZE; i++) {
+        float theta = 2.0f * 3.14159265359f * i * k / BUFFER_SIZE;
+        float val = 2047.5f * (1.0f + arm_sin_f32(theta));
+        dac_buffer[i] = (uint32_t)val;
+    }
+}
 
-            // Check debounce interval (e.g., 200 ms)
-            if ((current_time_ms - last_button_toggle_ms) > 200)
-            {
-                last_button_toggle_ms = current_time_ms;
-
-                // Turn on LED
-                 * */
-                //HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-                /*
-            } // if ((current_time_ms - last_button_toggle_ms) > 200)
-
-            button_prev_state = button_curr_state;
-            */
-       // } // if if (GPIO_Pin == B1_Pin
-
-                // set state
-    			state = RECORDING;
-
-    			// set new data flag
-    			buffer_ready = false;
-
-    			// stop speaker
-    			Stop_Playback();
-
-    			// start microphone
-    			Start_Recording();
-
-	}
-} // void
 
 /*
  * Commented out while using DMA
@@ -664,38 +656,36 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 } //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
 */
 
-// Process DFSDM data when buffer is full
-void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
-{
+void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter) {
+    Stop_Recording();
+    // Do NOT call Start_Playback here; wait for button press
+    buffer_ready = true;
+    state = IDLE; // Return to IDLE to wait for "Play" button press
+
+    // Visual Indicator: Solid LED means "Ready to Play"
+    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+}
 
 
-	// stop_recording (i.e. stop microphone putting new data in dfsdm_buffer)
-	Stop_Recording();
-
-
-	// process buffer: dfsdm_buffer -> dac_buffer
-	Process_Buffer();
-
-	// play notes
-
-	// start playback (i.e. start DAC output to speaker from dac_buffer)
-	Start_Playback();
-
-	// log that buffer data has been dealt with
-	buffer_ready = true;
-
-} // void HAL_DFSDM_FilterRegConvCpltCallbacks
-
-
-// Interupt to stop DAC after playing contents of buffer
+// Called when DAC finishes playing a buffer (note or sample)
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
-
-    // Check if we are in playback state to avoid accidental stops
-    if (state == PLAYBACK) {
+	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+    if (state == NOTES) {
+        note_index++;
+        if (note_index < 6) {
+            Generate_Note(k_values[note_index]);
+            // Restart DMA for the next note
+            HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)dac_buffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
+        } else {
+            // Sequence of 6 notes done, now play recorded sample
+            state = PLAYBACK;
+            Process_Buffer(); // Convert mic data to DAC format
+            HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)dac_buffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
+        }
+    } else if (state == PLAYBACK) {
         Stop_Playback();
         state = IDLE;
-
-        // Visual feedback: Turn off LED when finished
+        buffer_ready = false; // Set to false so the NEXT press re-records
         HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     }
 }

@@ -1,14 +1,14 @@
-15:27:58 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
+16:21:09 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
 make -j24 all 
 arm-none-eabi-size  ECSE444-Lab3.elf 
    text	   data	    bss	    dec	    hex	filename
-  21604	     12	 162100	 183716	  2cda4	ECSE444-Lab3.elf
+  21992	     12	 162100	 184104	  2cf28	ECSE444-Lab3.elf
 Finished building: default.size.stdout
  
-15:28:01 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
+16:21:11 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
 make -j24 all 
 arm-none-eabi-size  ECSE444-Lab3.elf 
    text	   data	    bss	    dec	    hex	filename
-  21604	     12	 162100	 183716	  2cda4	ECSE444-Lab3.elf
+  21992	     12	 162100	 184104	  2cf28	ECSE444-Lab3.elf
 Finished building: default.size.stdout
  
