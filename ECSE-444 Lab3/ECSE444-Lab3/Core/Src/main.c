@@ -47,6 +47,10 @@
 #define DAC_MAX 255 // for uint8_t
 #define DAC_SCALE (2.0f/3.0f)
 
+// Define Buffer Size for DMA
+//make wayyyyy bigger
+#define BUFFER_SIZE 20000
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +61,10 @@
 /* Private variables ---------------------------------------------------------*/
 DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch1;
+
+DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
+DFSDM_Channel_HandleTypeDef hdfsdm1_channel2;
+DMA_HandleTypeDef hdma_dfsdm1_flt0;
 
 TIM_HandleTypeDef htim2;
 
@@ -75,6 +83,12 @@ static float theta;								// Angle based on sine_index
 static float value;								// sine value before scaling for DAC
 static float checkVal;
 
+// DFSDM Buffer
+int32_t dfsdm_buffer[BUFFER_SIZE]; // DFSDM output (signed 24-bit in 32-bit words)
+
+// DMA Buffer
+uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
+
 //
 
 /* USER CODE END PV */
@@ -85,6 +99,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DAC1_Init(void);
+static void MX_DFSDM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,8 +113,6 @@ static void MX_DAC1_Init(void);
   * @brief  The application entry point.
   * @retval int
   */
-
-// counter period set at 2720 for approx 44.1Mhz sampling rate
 int main(void)
 {
 
@@ -128,6 +141,7 @@ int main(void)
   MX_DMA_Init();
   MX_TIM2_Init();
   MX_DAC1_Init();
+  MX_DFSDM1_Init();
   /* USER CODE BEGIN 2 */
 
   // Calculate sine LUT
@@ -138,18 +152,32 @@ int main(void)
   		    sine_index++;
   	} // while (sine_index < samples)
 
-  // Start Timer 2
-  HAL_TIM_Base_Start_IT(&htim2);
+  // Start Timer 2 with Interrupt
+  //HAL_TIM_Base_Start_IT(&htim2);
+
+  // Start Timer 2 without Interrupt
+  HAL_TIM_Base_Start(&htim2);
 
   // Start DAC (NON-DMA mode)
   //HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 
-  // Start DMA
+  // Start DAC with DMA
+  // FOSR = clock / (divider * sampling rate)
+  // divider = clock / working clock = 120/2.4 = 50
+  // FOSR = 120 / (50 * 0.02
   HAL_DAC_Start_DMA(&hdac1,
                     DAC_CHANNEL_1,
-                    (uint32_t*)sine_wave,
+                    (uint32_t*)dac_buffer,
                     SAMPLES,
-                    DAC_ALIGN_8B_R);
+					DAC_ALIGN_12B_R);HAL_TIM_Base_Start(&htim2);
+
+
+
+  // Start DFSDM1 DMA  (starts reading from microphone)
+  HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
+                                   dfsdm_buffer,
+                                   BUFFER_SIZE);
+
 
   /* USER CODE END 2 */
 
@@ -262,6 +290,59 @@ static void MX_DAC1_Init(void)
 }
 
 /**
+  * @brief DFSDM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DFSDM1_Init(void)
+{
+
+  /* USER CODE BEGIN DFSDM1_Init 0 */
+
+  /* USER CODE END DFSDM1_Init 0 */
+
+  /* USER CODE BEGIN DFSDM1_Init 1 */
+
+  /* USER CODE END DFSDM1_Init 1 */
+  hdfsdm1_filter0.Instance = DFSDM1_Filter0;
+  hdfsdm1_filter0.Init.RegularParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
+  hdfsdm1_filter0.Init.RegularParam.FastMode = ENABLE;
+  hdfsdm1_filter0.Init.RegularParam.DmaMode = ENABLE;
+  hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_FASTSINC_ORDER;
+  hdfsdm1_filter0.Init.FilterParam.Oversampling = 120;
+  hdfsdm1_filter0.Init.FilterParam.IntOversampling = 1;
+  if (HAL_DFSDM_FilterInit(&hdfsdm1_filter0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  hdfsdm1_channel2.Instance = DFSDM1_Channel2;
+  hdfsdm1_channel2.Init.OutputClock.Activation = ENABLE;
+  hdfsdm1_channel2.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
+  hdfsdm1_channel2.Init.OutputClock.Divider = 50;
+  hdfsdm1_channel2.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
+  hdfsdm1_channel2.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
+  hdfsdm1_channel2.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
+  hdfsdm1_channel2.Init.SerialInterface.Type = DFSDM_CHANNEL_SPI_RISING;
+  hdfsdm1_channel2.Init.SerialInterface.SpiClock = DFSDM_CHANNEL_SPI_CLOCK_INTERNAL;
+  hdfsdm1_channel2.Init.Awd.FilterOrder = DFSDM_CHANNEL_FASTSINC_ORDER;
+  hdfsdm1_channel2.Init.Awd.Oversampling = 1;
+  hdfsdm1_channel2.Init.Offset = 0;
+  hdfsdm1_channel2.Init.RightBitShift = 0x00;
+  if (HAL_DFSDM_ChannelInit(&hdfsdm1_channel2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_DFSDM_FilterConfigRegChannel(&hdfsdm1_filter0, DFSDM_CHANNEL_2, DFSDM_CONTINUOUS_CONV_ON) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DFSDM1_Init 2 */
+
+  /* USER CODE END DFSDM1_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -320,6 +401,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
 
 }
 
@@ -338,6 +422,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -416,6 +501,52 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 	} //if (htim == &htim2)
 } //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
 */
+
+// For using DFSDM
+void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
+{
+
+	// STOP DMA
+	HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
+
+
+	// STOP TIMER
+	HAL_TIM_Base_Stop(&htim2);
+
+
+	// PROCESS BUFFER
+
+    uint32_t i; // needs to be able to loop up to 60k
+    uint16_t data;
+
+    // Loop over all new samples in dfsdm_buffer and put in dac_buffer
+    for(i = 0; i < BUFFER_SIZE; i++)
+    {
+
+    	/*
+    	Convert data type:
+		   * (int32) dfsdm_buffer[i] = <sign = 1><data = 23><garbage = 8>
+		   * remove 8 non-data bits, preserve 12 MSB of data
+		   * add 2^11 to convert signed -> unsigned
+		   * (uint16) dac_buffer[i] = <garbage = 4><data = 12>
+		*/
+
+    	data = (dfsdm_buffer[i]>> 20) + 0x800;
+    	dac_buffer[i] = data;
+
+
+    } // for(i = 0; i < BUFFER_SIZE; i++)
+
+    // START TIMER
+    HAL_TIM_Base_Start(&htim2);
+
+    // START DMA
+    // Start DFSDM1 DMA  (starts reading from microphone)
+    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
+                                     dfsdm_buffer,
+                                     BUFFER_SIZE);
+
+}
 
 /* USER CODE END 4 */
 
