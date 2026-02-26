@@ -113,6 +113,11 @@ static void MX_TIM2_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_DFSDM1_Init(void);
 /* USER CODE BEGIN PFP */
+void Start_Recording(void);
+void Stop_Recording(void);
+void Start_Playback(void);
+void Stop_Playback(void);
+void Process_Buffer(void);
 
 /* USER CODE END PFP */
 
@@ -202,10 +207,10 @@ int main(void)
 	  //HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
 
 	  // Stop playback
-	  Stop_Playback();
+	  //Stop_Playback();
 
 	  // Start recording();
-	  Start_Recording();
+	  //Start_Recording();
 
 	  // State Machine (FOR USE LATER)
 	  switch(state) {
@@ -224,8 +229,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
-
-} // main
+}
 
 /**
   * @brief System Clock Configuration
@@ -307,7 +311,7 @@ static void MX_DAC1_Init(void)
   */
   sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
   sConfig.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
-  sConfig.DAC_HighFrequency = DAC_HIGH_FREQUENCY_INTERFACE_MODE_ABOVE_80MHZ;
+  sConfig.DAC_HighFrequency = DAC_HIGH_FREQUENCY_INTERFACE_MODE_DISABLE;
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
   sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
   sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
@@ -340,8 +344,8 @@ static void MX_DFSDM1_Init(void)
   hdfsdm1_filter0.Init.RegularParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
   hdfsdm1_filter0.Init.RegularParam.FastMode = ENABLE;
   hdfsdm1_filter0.Init.RegularParam.DmaMode = ENABLE;
-  hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_FASTSINC_ORDER;
-  hdfsdm1_filter0.Init.FilterParam.Oversampling = 120;
+  hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_SINC3_ORDER;
+  hdfsdm1_filter0.Init.FilterParam.Oversampling = 250;
   hdfsdm1_filter0.Init.FilterParam.IntOversampling = 1;
   if (HAL_DFSDM_FilterInit(&hdfsdm1_filter0) != HAL_OK)
   {
@@ -350,7 +354,7 @@ static void MX_DFSDM1_Init(void)
   hdfsdm1_channel2.Instance = DFSDM1_Channel2;
   hdfsdm1_channel2.Init.OutputClock.Activation = ENABLE;
   hdfsdm1_channel2.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-  hdfsdm1_channel2.Init.OutputClock.Divider = 50;
+  hdfsdm1_channel2.Init.OutputClock.Divider = 60;
   hdfsdm1_channel2.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
   hdfsdm1_channel2.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
   hdfsdm1_channel2.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
@@ -395,7 +399,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 2720;
+  htim2.Init.Period = 15000;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -490,6 +494,9 @@ void Start_Recording() {
 	// set state
 	state = RECORDING;
 
+	// turn on LED
+	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+
 	// start microphone
     HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
                                      dfsdm_buffer,
@@ -501,6 +508,9 @@ void Stop_Recording() {
 
 	// don't update state, depends on what runs next
 
+	// turn off LED
+	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+
 	// Stop putting data into DMA from speaker
     HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
 }
@@ -510,7 +520,8 @@ void Process_Buffer(){
 
 	// variables
     uint32_t i;
-    uint16_t data;
+    int32_t dfsdm_sample;
+    uint16_t dac_data;
 
     // Loop over all new samples in dfsdm_buffer and put in dac_buffer
         for(i = 0; i < BUFFER_SIZE; i++)
@@ -518,28 +529,36 @@ void Process_Buffer(){
 
         	// Convert data type
         	/*
-    		   * (int32) dfsdm_buffer[i] = <sign = 1><data = 23><garbage = 8>
+    		   * (int32) dfsdm_buffer[i] = <sign = 1><data = 24><garbage = 8>
     		   * remove 8 non-data bits, preserve 12 MSB of data
     		   * add 2^11 to convert signed -> unsigned
     		   * (uint16) dac_buffer[i] = <garbage = 4><data = 12>
     		*/
 
-        	data = (dfsdm_buffer[i]>> 19) + 0x800;
-
         	// TODO: consider amplifying if can't hear on speaker
+        	dfsdm_sample = ((int32_t)dfsdm_buffer[i] >> 8);  			// extract 23 bits of audio
+
+        	dfsdm_sample = (int32_t)(dfsdm_sample * 3.0f); 				// amplify sample
+
+        	dfsdm_sample = dfsdm_sample >> 12; 					// extract 12 MSb from 23 audio bits
+
+        	dfsdm_sample = dfsdm_sample + 0x800; 		// convert to positive range
+
+
+        	//data = ((dfsdm_buffer[i]>> 19) * 1.5) + 0x800;
 
         	// Place in dac_buffer with range clipping
         		// we are fitting 12 bit range inside 16 bit data type
         		// so therefore possible for larger numbers to exist
 
-        	if (data < 0) { // Negative values clip to 0
+        	if (dfsdm_sample < 0) { // Negative values clip to 0
         		dac_buffer[i] = 0;
         	} // if
-        	else if (data > 0x1000) { // Out of bounds positive clip to max
+        	else if (dfsdm_sample > 0xFFF) { // Out of bounds positive clip to max
         		dac_buffer[i] = 4095;
         	} // else if
         	else { // Valid data in DAC buffer
-        		dac_buffer[i] = data;
+        		dac_buffer[i] = (uint16_t)dfsdm_sample;
         	} // else
         } // for(i = 0; i < BUFFER_SIZE; i++)
 } // void Process_Buffer(){
@@ -566,7 +585,7 @@ void Start_Playback() {
 
 
 // Function to stop playback
-void StopPlayback() {
+void Stop_Playback() {
 
 	// don't update state, depends on what runs next
 
@@ -600,7 +619,7 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
 
                 // Turn on LED
                  * */
-                HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+                //HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
                 /*
             } // if ((current_time_ms - last_button_toggle_ms) > 200)
 
@@ -615,10 +634,10 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
     			buffer_ready = false;
 
     			// stop speaker
-    			StopPlayback();
+    			Stop_Playback();
 
     			// start microphone
-    			StartRecording();
+    			Start_Recording();
 
 	}
 } // void
@@ -647,6 +666,7 @@ void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filt
 
 	// stop_recording (i.e. stop microphone putting new data in dfsdm_buffer)
 	Stop_Recording();
+
 
 	// process buffer: dfsdm_buffer -> dac_buffer
 	Process_Buffer();
