@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "arm_math.h"
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
@@ -88,6 +89,17 @@ int32_t dfsdm_buffer[BUFFER_SIZE]; // DFSDM output (signed 24-bit in 32-bit word
 
 // DMA Buffer
 uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
+
+// State machine variables
+typedef enum  {
+	IDLE,
+	RECORDING,
+	PLAYBACK
+} State;
+
+State state = IDLE;
+
+volatile bool buffer_ready;
 
 //
 
@@ -165,18 +177,18 @@ int main(void)
   // FOSR = clock / (divider * sampling rate)
   // divider = clock / working clock = 120/2.4 = 50
   // FOSR = 120 / (50 * 0.02
-  HAL_DAC_Start_DMA(&hdac1,
-                    DAC_CHANNEL_1,
-                    (uint32_t*)dac_buffer,
-                    SAMPLES,
-					DAC_ALIGN_12B_R);HAL_TIM_Base_Start(&htim2);
+  //HAL_DAC_Start_DMA(&hdac1,
+  //                  DAC_CHANNEL_1,
+   //                 (uint32_t*)dac_buffer,
+   //                 BUFFER_SIZE,
+	//				DAC_ALIGN_12B_R);HAL_TIM_Base_Start(&htim2);
 
 
 
   // Start DFSDM1 DMA  (starts reading from microphone)
-  HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
-                                   dfsdm_buffer,
-                                   BUFFER_SIZE);
+  //HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
+  //                                 dfsdm_buffer,
+  //                                 BUFFER_SIZE);
 
 
   /* USER CODE END 2 */
@@ -188,12 +200,32 @@ int main(void)
 	  // Removed while using DMA
 	  //checkVal = sine_wave[sine_index];
 	  //HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_wave[sine_index]);
+
+	  // Stop playback
+	  Stop_Playback();
+
+	  // Start recording();
+	  Start_Recording();
+
+	  // State Machine (FOR USE LATER)
+	  switch(state) {
+	  case IDLE:
+		  break;
+	  case RECORDING:
+		  break;
+	  case PLAYBACK:
+		  break;
+	  }
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
-}
+
+} // main
 
 /**
   * @brief System Clock Configuration
@@ -452,6 +484,100 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+// Function to start recording
+void Start_Recording() {
+
+	// set state
+	state = RECORDING;
+
+	// start microphone
+    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
+                                     dfsdm_buffer,
+                                     BUFFER_SIZE);
+}
+
+// Function to stop recording
+void Stop_Recording() {
+
+	// don't update state, depends on what runs next
+
+	// Stop putting data into DMA from speaker
+    HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
+}
+
+// Function to process buffer
+void Process_Buffer(){
+
+	// variables
+    uint32_t i;
+    uint16_t data;
+
+    // Loop over all new samples in dfsdm_buffer and put in dac_buffer
+        for(i = 0; i < BUFFER_SIZE; i++)
+        {
+
+        	// Convert data type
+        	/*
+    		   * (int32) dfsdm_buffer[i] = <sign = 1><data = 23><garbage = 8>
+    		   * remove 8 non-data bits, preserve 12 MSB of data
+    		   * add 2^11 to convert signed -> unsigned
+    		   * (uint16) dac_buffer[i] = <garbage = 4><data = 12>
+    		*/
+
+        	data = (dfsdm_buffer[i]>> 19) + 0x800;
+
+        	// TODO: consider amplifying if can't hear on speaker
+
+        	// Place in dac_buffer with range clipping
+        		// we are fitting 12 bit range inside 16 bit data type
+        		// so therefore possible for larger numbers to exist
+
+        	if (data < 0) { // Negative values clip to 0
+        		dac_buffer[i] = 0;
+        	} // if
+        	else if (data > 0x1000) { // Out of bounds positive clip to max
+        		dac_buffer[i] = 4095;
+        	} // else if
+        	else { // Valid data in DAC buffer
+        		dac_buffer[i] = data;
+        	} // else
+        } // for(i = 0; i < BUFFER_SIZE; i++)
+} // void Process_Buffer(){
+
+
+// Function to start playback
+void Start_Playback() {
+
+	// set state
+	state = PLAYBACK;
+
+	// Start timer to control rate of new data to DAC for output
+	HAL_TIM_Base_Start(&htim2);
+
+	// Start DAC
+		// data put by DMA in dac_buffer and updated on timer intervals
+    HAL_DAC_Start_DMA(&hdac1,
+                      DAC_CHANNEL_1,
+                      (uint32_t*)dac_buffer, // 32 bit address
+                      BUFFER_SIZE,
+  					DAC_ALIGN_12B_R);
+} // void Start_Playback()
+
+
+
+// Function to stop playback
+void StopPlayback() {
+
+	// don't update state, depends on what runs next
+
+	// Stop DAC
+	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+
+	// Stop Timer that controls DAC
+	HAL_TIM_Base_Stop(&htim2);
+} // void StopPlayback()
+
+
 // Button Interrupt Handler
 void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
 	if (GPIO_Pin == B1_Pin) {
@@ -482,6 +608,18 @@ void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
             */
        // } // if if (GPIO_Pin == B1_Pin
 
+                // set state
+    			state = RECORDING;
+
+    			// set new data flag
+    			buffer_ready = false;
+
+    			// stop speaker
+    			StopPlayback();
+
+    			// start microphone
+    			StartRecording();
+
 	}
 } // void
 
@@ -506,47 +644,20 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
 {
 
-	// STOP DMA
-	HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
 
+	// stop_recording (i.e. stop microphone putting new data in dfsdm_buffer)
+	Stop_Recording();
 
-	// STOP TIMER
-	HAL_TIM_Base_Stop(&htim2);
+	// process buffer: dfsdm_buffer -> dac_buffer
+	Process_Buffer();
 
+	// start playback (i.e. start DAC output to speaker from dac_buffer)
+	Start_Playback();
 
-	// PROCESS BUFFER
+	// log that buffer data has been dealt with
+	buffer_ready = true;
 
-    uint32_t i; // needs to be able to loop up to 60k
-    uint16_t data;
-
-    // Loop over all new samples in dfsdm_buffer and put in dac_buffer
-    for(i = 0; i < BUFFER_SIZE; i++)
-    {
-
-    	/*
-    	Convert data type:
-		   * (int32) dfsdm_buffer[i] = <sign = 1><data = 23><garbage = 8>
-		   * remove 8 non-data bits, preserve 12 MSB of data
-		   * add 2^11 to convert signed -> unsigned
-		   * (uint16) dac_buffer[i] = <garbage = 4><data = 12>
-		*/
-
-    	data = (dfsdm_buffer[i]>> 20) + 0x800;
-    	dac_buffer[i] = data;
-
-
-    } // for(i = 0; i < BUFFER_SIZE; i++)
-
-    // START TIMER
-    HAL_TIM_Base_Start(&htim2);
-
-    // START DMA
-    // Start DFSDM1 DMA  (starts reading from microphone)
-    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
-                                     dfsdm_buffer,
-                                     BUFFER_SIZE);
-
-}
+} // void HAL_DFSDM_FilterRegConvCpltCallbacks
 
 /* USER CODE END 4 */
 

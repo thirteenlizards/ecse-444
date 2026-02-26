@@ -1,10 +1,13 @@
-12:13:27 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
+13:27:14 **** Incremental Build of configuration Debug for project ECSE444-Lab3 ****
 make -j24 all 
-arm-none-eabi-size  ECSE444-Lab3.elf 
-   text	   data	    bss	    dec	    hex	filename
-  21160	     12	 162100	 183272	  2cbe8	ECSE444-Lab3.elf
-Finished building: default.size.stdout
- 
+arm-none-eabi-gcc -o "ECSE444-Lab3.elf" @"objects.list"  -larm_cortexM4lf_math -mcpu=cortex-m4 -T"C:\Users\Anna\Documents\ECSE 444\ecse-444\ECSE-444 Lab3\ECSE444-Lab3\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECSE444-Lab3.map" -Wl,--gc-sections -static -L../Core/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Core/Src/main.o: in function `main':
+C:/Users/Anna/Documents/ECSE 444/ecse-444/ECSE-444 Lab3/ECSE444-Lab3/Debug/../Core/Src/main.c:205:(.text.main+0xb4): undefined reference to `Stop_Playback'
+C:/ST/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Core/Src/main.o: in function `HAL_GPIO_EXTI_Callback':
+C:/Users/Anna/Documents/ECSE 444/ecse-444/ECSE-444 Lab3/ECSE444-Lab3/Debug/../Core/Src/main.c:621:(.text.HAL_GPIO_EXTI_Callback+0x2c): undefined reference to `StartRecording'
+collect2.exe: error: ld returned 1 exit status
+make: *** [makefile:64: ECSE444-Lab3.elf] Error 1
+"make -j24 all" terminated with exit code 2. Build might be incomplete.
 
-12:13:27 Build Finished. 0 errors, 0 warnings. (took 268ms)
+13:27:15 Build Failed. 3 errors, 0 warnings. (took 407ms)
 
