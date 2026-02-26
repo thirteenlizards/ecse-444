@@ -94,8 +94,7 @@ uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
 typedef enum  {
 	IDLE,
 	RECORDING,
-	PLAYBACK,
-	NOTES
+	PLAYBACK
 } State;
 
 State state = IDLE;
@@ -569,7 +568,7 @@ void Process_Buffer(){
 } // void Process_Buffer(){
 
 
-// Function to start speaker
+// Function to start playback
 void Start_Playback() {
 
 	// set state

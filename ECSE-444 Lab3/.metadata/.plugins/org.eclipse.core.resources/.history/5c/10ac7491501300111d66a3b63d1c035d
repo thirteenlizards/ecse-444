@@ -94,8 +94,7 @@ uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
 typedef enum  {
 	IDLE,
 	RECORDING,
-	PLAYBACK,
-	NOTES
+	PLAYBACK
 } State;
 
 State state = IDLE;
@@ -569,7 +568,7 @@ void Process_Buffer(){
 } // void Process_Buffer(){
 
 
-// Function to start speaker
+// Function to start playback
 void Start_Playback() {
 
 	// set state
@@ -664,7 +663,7 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 } //  void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim)
 */
 
-// Process DFSDM data when buffer is full
+// For using DFSDM
 void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
 {
 
@@ -676,8 +675,6 @@ void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filt
 	// process buffer: dfsdm_buffer -> dac_buffer
 	Process_Buffer();
 
-	// play notes
-
 	// start playback (i.e. start DAC output to speaker from dac_buffer)
 	Start_Playback();
 
@@ -685,20 +682,6 @@ void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filt
 	buffer_ready = true;
 
 } // void HAL_DFSDM_FilterRegConvCpltCallbacks
-
-
-// Interupt to stop DAC after playing contents of buffer
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
-
-    // Check if we are in playback state to avoid accidental stops
-    if (state == PLAYBACK) {
-        Stop_Playback();
-        state = IDLE;
-
-        // Visual feedback: Turn off LED when finished
-        HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-    }
-}
 
 /* USER CODE END 4 */
 

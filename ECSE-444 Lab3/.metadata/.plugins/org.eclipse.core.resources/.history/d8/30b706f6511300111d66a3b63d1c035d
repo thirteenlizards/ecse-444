@@ -569,7 +569,7 @@ void Process_Buffer(){
 } // void Process_Buffer(){
 
 
-// Function to start speaker
+// Function to start playback
 void Start_Playback() {
 
 	// set state

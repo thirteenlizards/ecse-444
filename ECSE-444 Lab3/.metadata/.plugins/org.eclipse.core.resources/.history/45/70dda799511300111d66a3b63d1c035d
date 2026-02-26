@@ -94,8 +94,7 @@ uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
 typedef enum  {
 	IDLE,
 	RECORDING,
-	PLAYBACK,
-	NOTES
+	PLAYBACK
 } State;
 
 State state = IDLE;
@@ -569,7 +568,7 @@ void Process_Buffer(){
 } // void Process_Buffer(){
 
 
-// Function to start speaker
+// Function to start playback
 void Start_Playback() {
 
 	// set state
@@ -687,7 +686,7 @@ void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filt
 } // void HAL_DFSDM_FilterRegConvCpltCallbacks
 
 
-// Interupt to stop DAC after playing contents of buffer
+// This is called when the DAC finishes playing the entire buffer
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 
     // Check if we are in playback state to avoid accidental stops
