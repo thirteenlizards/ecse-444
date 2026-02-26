@@ -52,6 +52,27 @@
 //make wayyyyy bigger
 #define BUFFER_SIZE 20000
 
+#define SINE_SAMPLES 64
+#define SAMPLE_RATE 8000
+#define NUM_NOTES 6
+#define NOTE_DURATION_SAMPLES (SAMPLE_RATE / 2)
+
+const uint32_t noteFreqs[NUM_NOTES] = {523, 659, 784, 880, 1047, 1319};
+uint32_t noteTable[SINE_SAMPLES];
+volatile uint32_t noteIndex  = 0;
+volatile uint32_t noteSample = 0;
+volatile uint8_t  currentNote = 0;
+volatile uint8_t  notesDone  = 0;
+
+// Add RECORDED and NOTES to your state enum
+typedef enum {
+    IDLE,
+    RECORDING,
+    RECORDED,       // waiting for second button press
+    NOTES,          // playing 6 notes
+    PLAYBACK
+} State;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -89,14 +110,6 @@ int32_t dfsdm_buffer[BUFFER_SIZE]; // DFSDM output (signed 24-bit in 32-bit word
 
 // DMA Buffer
 uint32_t dac_buffer[BUFFER_SIZE];    // DAC buffer (12-bit right-aligned)
-
-// State machine variables
-typedef enum  {
-	IDLE,
-	RECORDING,
-	PLAYBACK,
-	NOTES
-} State;
 
 State state = IDLE;
 
@@ -174,7 +187,8 @@ int main(void)
   //HAL_TIM_Base_Start_IT(&htim2);
 
   // Start Timer 2 without Interrupt
-  HAL_TIM_Base_Start(&htim2);
+  buildNoteTable();
+  HAL_TIM_Base_Start_IT(&htim2);
 
   // Start DAC (NON-DMA mode)
   //HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
@@ -215,17 +229,37 @@ int main(void)
 
 	  // State Machine (FOR USE LATER)
 	  switch(state) {
-	  case IDLE:
-		  break;
-	  case RECORDING:
-		  // Blink LED while recording is happening
-		  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-		  HAL_Delay(200);
-		  break;
-	  case PLAYBACK:
-		  // Set LED while playback is happening
-		  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		  break;
+	      case IDLE:
+	          HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+	          break;
+
+	      case RECORDING:
+	          if (HAL_GetTick() - last_button_toggle_ms >= 200) {
+	              HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	              last_button_toggle_ms = HAL_GetTick();
+	          }
+	          break;
+
+	      case RECORDED:
+	          // Slow blink = ready, waiting for button
+	          if (HAL_GetTick() - last_button_toggle_ms >= 800) {
+	              HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	              last_button_toggle_ms = HAL_GetTick();
+	          }
+	          break;
+
+	      case NOTES:
+	          HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+	          if (notesDone) {
+	              notesDone = 0;
+	              // DAC is already on from HAL_DAC_Start, just switch to DMA mode
+	              Start_Playback();
+	          }
+	          break;
+
+	      case PLAYBACK:
+	          HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+	          break;
 	  }
 
 
@@ -494,6 +528,13 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void buildNoteTable(void) {
+    for (int i = 0; i < SINE_SAMPLES; i++) {
+        float angle = 2.0f * 3.14159f * i / SINE_SAMPLES;
+        noteTable[i] = (uint32_t)(2048 + (int)(2000.0f * arm_sin_f32(angle)));
+    }
+}
+
 // Function to start recording
 void Start_Recording() {
 
@@ -571,81 +612,72 @@ void Process_Buffer(){
 
 // Function to start speaker
 void Start_Playback() {
-
-	// set state
-	state = PLAYBACK;
-
-	// Start timer to control rate of new data to DAC for output
-	HAL_TIM_Base_Start(&htim2);
-
-	// Start DAC
-		// data put by DMA in dac_buffer and updated on timer intervals
+    state = PLAYBACK;
+    // DO NOT call HAL_TIM_Base_Start — timer is already running in IT mode
     HAL_DAC_Start_DMA(&hdac1,
                       DAC_CHANNEL_1,
-                      (uint32_t*)dac_buffer, // 32 bit address
+                      (uint32_t*)dac_buffer,
                       BUFFER_SIZE,
-  					DAC_ALIGN_12B_R);
-} // void Start_Playback()
+                      DAC_ALIGN_12B_R);
+}
 
 
 
 // Function to stop playback
 void Stop_Playback() {
-
-	// don't update state, depends on what runs next
-
-	// Stop DAC
-	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-
-	// Stop Timer that controls DAC
-	HAL_TIM_Base_Stop(&htim2);
-} // void StopPlayback()
+    // DO NOT stop the timer — it needs to keep running for notes
+    HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+}
 
 
 // Button Interrupt Handler
-void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin) {
-	if (GPIO_Pin == B1_Pin) {
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin != B1_Pin) return;
 
-		// TO DO: disabled debouncing for simplicity
+    if (state == IDLE || state == RECORDED) {
+        if (state == IDLE) {
+            // First press: record
+            state        = RECORDING;
+            buffer_ready = false;
+            Stop_Playback();
+            Start_Recording();
+        } else {
+            // Second press: play notes then sample
+            currentNote = 0;
+            noteIndex   = 0;
+            noteSample  = 0;
+            notesDone   = 0;
+            state       = NOTES;
+            HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+        }
+    } else if (state == PLAYBACK) {
+        // Press during playback: re-record
+        Stop_Playback();
+        state        = RECORDING;
+        buffer_ready = false;
+        Start_Recording();
+    }
+}
 
-		/*
-        // Read current state (active LOW)
-        button_curr_state = !HAL_GPIO_ReadPin(B1_Port, B1_Pin);
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim != &htim2) return;
+    if (state != NOTES) return;
 
-        // Detect rising edge (button press)
-        if (button_curr_state && !button_prev_state)
-        {
-            uint32_t current_time_ms = HAL_GetTick();
+    uint32_t step = (noteFreqs[currentNote] * SINE_SAMPLES) / SAMPLE_RATE;
+    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, noteTable[noteIndex]);
+    noteIndex = (noteIndex + step) % SINE_SAMPLES;
+    noteSample++;
 
-            // Check debounce interval (e.g., 200 ms)
-            if ((current_time_ms - last_button_toggle_ms) > 200)
-            {
-                last_button_toggle_ms = current_time_ms;
-
-                // Turn on LED
-                 * */
-                //HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-                /*
-            } // if ((current_time_ms - last_button_toggle_ms) > 200)
-
-            button_prev_state = button_curr_state;
-            */
-       // } // if if (GPIO_Pin == B1_Pin
-
-                // set state
-    			state = RECORDING;
-
-    			// set new data flag
-    			buffer_ready = false;
-
-    			// stop speaker
-    			Stop_Playback();
-
-    			// start microphone
-    			Start_Recording();
-
-	}
-} // void
+    if (noteSample >= NOTE_DURATION_SAMPLES) {
+        noteSample = 0;
+        noteIndex  = 0;
+        currentNote++;
+        if (currentNote >= NUM_NOTES) {
+            notesDone = 1;
+            state     = PLAYBACK;
+        }
+    }
+}
 
 /*
  * Commented out while using DMA
@@ -665,27 +697,13 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim) {
 */
 
 // Process DFSDM data when buffer is full
-void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
-{
-
-
-	// stop_recording (i.e. stop microphone putting new data in dfsdm_buffer)
-	Stop_Recording();
-
-
-	// process buffer: dfsdm_buffer -> dac_buffer
-	Process_Buffer();
-
-	// play notes
-
-	// start playback (i.e. start DAC output to speaker from dac_buffer)
-	Start_Playback();
-
-	// log that buffer data has been dealt with
-	buffer_ready = true;
-
-} // void HAL_DFSDM_FilterRegConvCpltCallbacks
-
+void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter) {
+    Stop_Recording();
+    Process_Buffer();
+    buffer_ready = true;
+    state = RECORDED;  // wait for button press, don't auto-play
+    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+}
 
 // Interupt to stop DAC after playing contents of buffer
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
