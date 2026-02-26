@@ -511,9 +511,9 @@ static void MX_DFSDM1_Init(void)
  800045e:	4b1c      	ldr	r3, [pc, #112]	@ (80004d0 <MX_DFSDM1_Init+0xbc>)
  8000460:	2200      	movs	r2, #0
  8000462:	609a      	str	r2, [r3, #8]
-  hdfsdm1_channel2.Init.OutputClock.Divider = 2;
+  hdfsdm1_channel2.Init.OutputClock.Divider = 50;
  8000464:	4b1a      	ldr	r3, [pc, #104]	@ (80004d0 <MX_DFSDM1_Init+0xbc>)
- 8000466:	2202      	movs	r2, #2
+ 8000466:	2232      	movs	r2, #50	@ 0x32
  8000468:	60da      	str	r2, [r3, #12]
   hdfsdm1_channel2.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
  800046a:	4b19      	ldr	r3, [pc, #100]	@ (80004d0 <MX_DFSDM1_Init+0xbc>)
