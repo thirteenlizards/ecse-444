@@ -27,29 +27,29 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000700c  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00014393  00000000  00000000  0000703c  2**0
+ 12 .debug_info   00014380  00000000  00000000  0000703c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00002928  00000000  00000000  0001b3cf  2**0
+ 13 .debug_abbrev 0000290e  00000000  00000000  0001b3bc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001158  00000000  00000000  0001dcf8  2**3
+ 14 .debug_aranges 00001158  00000000  00000000  0001dcd0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 00000d3a  00000000  00000000  0001ee50  2**0
+ 15 .debug_rnglists 00000d3a  00000000  00000000  0001ee28  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0002b948  00000000  00000000  0001fb8a  2**0
+ 16 .debug_macro  0002b948  00000000  00000000  0001fb62  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00012e13  00000000  00000000  0004b4d2  2**0
+ 17 .debug_line   00012e23  00000000  00000000  0004b4aa  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0010fa1d  00000000  00000000  0005e2e5  2**0
+ 18 .debug_str    0010fa1d  00000000  00000000  0005e2cd  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      000000b8  00000000  00000000  0016dd02  2**0
+ 19 .comment      000000b8  00000000  00000000  0016dcea  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  0000483c  00000000  00000000  0016ddbc  2**2
+ 20 .debug_frame  0000483c  00000000  00000000  0016dda4  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000081  00000000  00000000  001725f8  2**0
+ 21 .debug_line_str 00000081  00000000  00000000  001725e0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_loc    000000fa  00000000  00000000  00172679  2**0
+ 22 .debug_loc    000000fa  00000000  00000000  00172661  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 23 .debug_ranges 00000010  00000000  00000000  00172773  2**0
+ 23 .debug_ranges 00000010  00000000  00000000  0017275b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -277,7 +277,6 @@ int main(void)
  800034a:	4b15      	ldr	r3, [pc, #84]	@ (80003a0 <main+0x1a4>)
  800034c:	2200      	movs	r2, #0
  800034e:	701a      	strb	r2, [r3, #0]
-	              // DAC is already on from HAL_DAC_Start, just switch to DMA mode
 	              Start_Playback();
  8000350:	f000 fab0 	bl	80008b4 <Start_Playback>
 	          }
@@ -1045,13 +1044,11 @@ void Start_Recording() {
 	//HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 
 	// start microphone
-    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
+    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, dfsdm_buffer, BUFFER_SIZE);
  80007e2:	f644 6220 	movw	r2, #20000	@ 0x4e20
  80007e6:	4904      	ldr	r1, [pc, #16]	@ (80007f8 <Start_Recording+0x20>)
  80007e8:	4804      	ldr	r0, [pc, #16]	@ (80007fc <Start_Recording+0x24>)
  80007ea:	f001 fb05 	bl	8001df8 <HAL_DFSDM_FilterRegularStart_DMA>
-                                     dfsdm_buffer,
-                                     BUFFER_SIZE);
 }
  80007ee:	bf00      	nop
  80007f0:	bd80      	pop	{r7, pc}
@@ -1108,11 +1105,11 @@ void Process_Buffer(){
  8000828:	121b      	asrs	r3, r3, #8
  800082a:	603b      	str	r3, [r7, #0]
 
-        	dfsdm_sample = (int32_t)(dfsdm_sample * 3.0f); 				// amplify sample
+        	dfsdm_sample = (int32_t)(dfsdm_sample * 12.0f); 				// amplify sample
  800082c:	683b      	ldr	r3, [r7, #0]
  800082e:	ee07 3a90 	vmov	s15, r3
  8000832:	eef8 7ae7 	vcvt.f32.s32	s15, s15
- 8000836:	eeb0 7a08 	vmov.f32	s14, #8	@ 0x40400000  3.0
+ 8000836:	eeb2 7a08 	vmov.f32	s14, #40	@ 0x41400000  12.0
  800083a:	ee67 7a87 	vmul.f32	s15, s15, s14
  800083e:	eefd 7ae7 	vcvt.s32.f32	s15, s15
  8000842:	ee17 3a90 	vmov	r3, s15
@@ -1196,7 +1193,7 @@ void Start_Playback() {
  80008bc:	2204      	movs	r2, #4
  80008be:	701a      	strb	r2, [r3, #0]
     // DO NOT call HAL_TIM_Base_Start — timer is already running in IT mode
-    HAL_DAC_Start_DMA(&hdac1,
+    HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)dac_buffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
  80008c0:	2300      	movs	r3, #0
  80008c2:	9300      	str	r3, [sp, #0]
  80008c4:	f644 6320 	movw	r3, #20000	@ 0x4e20
@@ -1204,10 +1201,6 @@ void Start_Playback() {
  80008ca:	2100      	movs	r1, #0
  80008cc:	4804      	ldr	r0, [pc, #16]	@ (80008e0 <Start_Playback+0x2c>)
  80008ce:	f000 fd93 	bl	80013f8 <HAL_DAC_Start_DMA>
-                      DAC_CHANNEL_1,
-                      (uint32_t*)dac_buffer,
-                      BUFFER_SIZE,
-                      DAC_ALIGN_12B_R);
 }
  80008d2:	bf00      	nop
  80008d4:	46bd      	mov	sp, r7
@@ -1263,8 +1256,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
  800091c:	781b      	ldrb	r3, [r3, #0]
  800091e:	2b00      	cmp	r3, #0
  8000920:	d10a      	bne.n	8000938 <HAL_GPIO_EXTI_Callback+0x40>
-            // First press: record
-            state        = RECORDING;
+            state = RECORDING;
  8000922:	4b19      	ldr	r3, [pc, #100]	@ (8000988 <HAL_GPIO_EXTI_Callback+0x90>)
  8000924:	2201      	movs	r2, #1
  8000926:	701a      	strb	r2, [r3, #0]
@@ -1279,24 +1271,23 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         if (state == IDLE) {
  8000936:	e023      	b.n	8000980 <HAL_GPIO_EXTI_Callback+0x88>
         } else {
-            // Second press: play notes then sample
             currentNote = 0;
  8000938:	4b15      	ldr	r3, [pc, #84]	@ (8000990 <HAL_GPIO_EXTI_Callback+0x98>)
  800093a:	2200      	movs	r2, #0
  800093c:	701a      	strb	r2, [r3, #0]
-            noteIndex   = 0;
+            noteIndex = 0;
  800093e:	4b15      	ldr	r3, [pc, #84]	@ (8000994 <HAL_GPIO_EXTI_Callback+0x9c>)
  8000940:	2200      	movs	r2, #0
  8000942:	601a      	str	r2, [r3, #0]
-            noteSample  = 0;
+            noteSample = 0;
  8000944:	4b14      	ldr	r3, [pc, #80]	@ (8000998 <HAL_GPIO_EXTI_Callback+0xa0>)
  8000946:	2200      	movs	r2, #0
  8000948:	601a      	str	r2, [r3, #0]
-            notesDone   = 0;
+            notesDone = 0;
  800094a:	4b14      	ldr	r3, [pc, #80]	@ (800099c <HAL_GPIO_EXTI_Callback+0xa4>)
  800094c:	2200      	movs	r2, #0
  800094e:	701a      	strb	r2, [r3, #0]
-            state       = NOTES;
+            state = NOTES;
  8000950:	4b0d      	ldr	r3, [pc, #52]	@ (8000988 <HAL_GPIO_EXTI_Callback+0x90>)
  8000952:	2203      	movs	r2, #3
  8000954:	701a      	strb	r2, [r3, #0]
@@ -1312,10 +1303,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
  8000962:	781b      	ldrb	r3, [r3, #0]
  8000964:	2b04      	cmp	r3, #4
  8000966:	d10b      	bne.n	8000980 <HAL_GPIO_EXTI_Callback+0x88>
-        // Press during playback: re-record
         Stop_Playback();
  8000968:	f7ff ffbc 	bl	80008e4 <Stop_Playback>
-        state        = RECORDING;
+        state = RECORDING;
  800096c:	4b06      	ldr	r3, [pc, #24]	@ (8000988 <HAL_GPIO_EXTI_Callback+0x90>)
  800096e:	2201      	movs	r2, #1
  8000970:	701a      	strb	r2, [r3, #0]
@@ -1349,16 +1339,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  80009a6:	b084      	sub	sp, #16
  80009a8:	af00      	add	r7, sp, #0
  80009aa:	6078      	str	r0, [r7, #4]
-    if (htim != &htim2) return;
+    if (htim != &htim2) {
  80009ac:	687b      	ldr	r3, [r7, #4]
  80009ae:	4a27      	ldr	r2, [pc, #156]	@ (8000a4c <HAL_TIM_PeriodElapsedCallback+0xa8>)
  80009b0:	4293      	cmp	r3, r2
  80009b2:	d145      	bne.n	8000a40 <HAL_TIM_PeriodElapsedCallback+0x9c>
-    if (state != NOTES) return;
+    	return;
+    }
+    if (state != NOTES) {
  80009b4:	4b26      	ldr	r3, [pc, #152]	@ (8000a50 <HAL_TIM_PeriodElapsedCallback+0xac>)
  80009b6:	781b      	ldrb	r3, [r3, #0]
  80009b8:	2b03      	cmp	r3, #3
  80009ba:	d143      	bne.n	8000a44 <HAL_TIM_PeriodElapsedCallback+0xa0>
+    	return;
+    }
 
     uint32_t step = (noteFreqs[currentNote] * SINE_SAMPLES) / SAMPLE_RATE;
  80009bc:	4b25      	ldr	r3, [pc, #148]	@ (8000a54 <HAL_TIM_PeriodElapsedCallback+0xb0>)
@@ -1405,7 +1399,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  8000a0e:	4b17      	ldr	r3, [pc, #92]	@ (8000a6c <HAL_TIM_PeriodElapsedCallback+0xc8>)
  8000a10:	2200      	movs	r2, #0
  8000a12:	601a      	str	r2, [r3, #0]
-        noteIndex  = 0;
+        noteIndex = 0;
  8000a14:	4b12      	ldr	r3, [pc, #72]	@ (8000a60 <HAL_TIM_PeriodElapsedCallback+0xbc>)
  8000a16:	2200      	movs	r2, #0
  8000a18:	601a      	str	r2, [r3, #0]
@@ -1427,15 +1421,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  8000a32:	4b0f      	ldr	r3, [pc, #60]	@ (8000a70 <HAL_TIM_PeriodElapsedCallback+0xcc>)
  8000a34:	2201      	movs	r2, #1
  8000a36:	701a      	strb	r2, [r3, #0]
-            state     = PLAYBACK;
+            state = PLAYBACK;
  8000a38:	4b05      	ldr	r3, [pc, #20]	@ (8000a50 <HAL_TIM_PeriodElapsedCallback+0xac>)
  8000a3a:	2204      	movs	r2, #4
  8000a3c:	701a      	strb	r2, [r3, #0]
  8000a3e:	e002      	b.n	8000a46 <HAL_TIM_PeriodElapsedCallback+0xa2>
-    if (htim != &htim2) return;
+    	return;
  8000a40:	bf00      	nop
  8000a42:	e000      	b.n	8000a46 <HAL_TIM_PeriodElapsedCallback+0xa2>
-    if (state != NOTES) return;
+    	return;
  8000a44:	bf00      	nop
         }
     }
@@ -1513,7 +1507,6 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
  8000ac6:	2200      	movs	r2, #0
  8000ac8:	701a      	strb	r2, [r3, #0]
 
-        // Visual feedback: Turn off LED when finished
         HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
  8000aca:	2200      	movs	r2, #0
  8000acc:	f44f 4180 	mov.w	r1, #16384	@ 0x4000

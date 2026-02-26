@@ -57,19 +57,19 @@
 #define NUM_NOTES 6
 #define NOTE_DURATION_SAMPLES (SAMPLE_RATE / 2)
 
-const uint32_t noteFreqs[NUM_NOTES] = {523, 659, 784, 880, 1047, 1319};
+const uint32_t noteFreqs[NUM_NOTES] = {520, 660, 770, 880, 1100, 1300};
 uint32_t noteTable[SINE_SAMPLES];
-volatile uint32_t noteIndex  = 0;
+volatile uint32_t noteIndex = 0;
 volatile uint32_t noteSample = 0;
-volatile uint8_t  currentNote = 0;
-volatile uint8_t  notesDone  = 0;
+volatile uint8_t currentNote = 0;
+volatile uint8_t notesDone  = 0;
 
-// Add RECORDED and NOTES to your state enum
+// state machine for states
 typedef enum {
     IDLE,
     RECORDING,
-    RECORDED,       // waiting for second button press
-    NOTES,          // playing 6 notes
+    RECORDED,
+    NOTES,
     PLAYBACK
 } State;
 
@@ -93,8 +93,8 @@ TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN PV */
 
 //  Button Debouncing
-static volatile  uint8_t 	button_prev_state = 0;
-static volatile uint8_t 	button_curr_state = 0;
+static volatile uint8_t button_prev_state = 0;
+static volatile uint8_t button_curr_state = 0;
 static volatile uint32_t last_button_toggle_ms = 0;
 static volatile uint32_t current_time_ms = 0;
 
@@ -132,6 +132,7 @@ void Stop_Recording(void);
 void Start_Playback(void);
 void Stop_Playback(void);
 void Process_Buffer(void);
+void buildNoteTable(void);
 
 /* USER CODE END PFP */
 
@@ -252,7 +253,6 @@ int main(void)
 	          HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 	          if (notesDone) {
 	              notesDone = 0;
-	              // DAC is already on from HAL_DAC_Start, just switch to DMA mode
 	              Start_Playback();
 	          }
 	          break;
@@ -545,9 +545,7 @@ void Start_Recording() {
 	//HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 
 	// start microphone
-    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0,
-                                     dfsdm_buffer,
-                                     BUFFER_SIZE);
+    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, dfsdm_buffer, BUFFER_SIZE);
 }
 
 // Function to stop recording
@@ -584,7 +582,7 @@ void Process_Buffer(){
 
         	dfsdm_sample = ((int32_t)dfsdm_buffer[i] >> 8);  			// extract 23 bits of audio
 
-        	dfsdm_sample = (int32_t)(dfsdm_sample * 3.0f); 				// amplify sample
+        	dfsdm_sample = (int32_t)(dfsdm_sample * 12.0f); 				// amplify sample
 
         	dfsdm_sample = dfsdm_sample >> 12; 					// extract 12 MSb from 23 audio bits
 
@@ -614,11 +612,7 @@ void Process_Buffer(){
 void Start_Playback() {
     state = PLAYBACK;
     // DO NOT call HAL_TIM_Base_Start — timer is already running in IT mode
-    HAL_DAC_Start_DMA(&hdac1,
-                      DAC_CHANNEL_1,
-                      (uint32_t*)dac_buffer,
-                      BUFFER_SIZE,
-                      DAC_ALIGN_12B_R);
+    HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)dac_buffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
 }
 
 
@@ -636,32 +630,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
     if (state == IDLE || state == RECORDED) {
         if (state == IDLE) {
-            // First press: record
-            state        = RECORDING;
+            state = RECORDING;
             buffer_ready = false;
             Stop_Playback();
             Start_Recording();
         } else {
-            // Second press: play notes then sample
             currentNote = 0;
-            noteIndex   = 0;
-            noteSample  = 0;
-            notesDone   = 0;
-            state       = NOTES;
+            noteIndex = 0;
+            noteSample = 0;
+            notesDone = 0;
+            state = NOTES;
             HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
         }
     } else if (state == PLAYBACK) {
-        // Press during playback: re-record
         Stop_Playback();
-        state        = RECORDING;
+        state = RECORDING;
         buffer_ready = false;
         Start_Recording();
     }
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim != &htim2) return;
-    if (state != NOTES) return;
+    if (htim != &htim2) {
+    	return;
+    }
+    if (state != NOTES) {
+    	return;
+    }
 
     uint32_t step = (noteFreqs[currentNote] * SINE_SAMPLES) / SAMPLE_RATE;
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, noteTable[noteIndex]);
@@ -670,11 +665,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
     if (noteSample >= NOTE_DURATION_SAMPLES) {
         noteSample = 0;
-        noteIndex  = 0;
+        noteIndex = 0;
         currentNote++;
         if (currentNote >= NUM_NOTES) {
             notesDone = 1;
-            state     = PLAYBACK;
+            state = PLAYBACK;
         }
     }
 }
@@ -713,7 +708,6 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
         Stop_Playback();
         state = IDLE;
 
-        // Visual feedback: Turn off LED when finished
         HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     }
 }
