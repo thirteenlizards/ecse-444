@@ -143,12 +143,10 @@ int main(void)
 	  HAL_Delay(1000);
 
 	  // Get pressure data and UART TX
-	  int16_t accData[3];
-	  BSP_ACCELERO_AccGetXYZ(accData);
-	  char output2[64];
-	  len = snprintf(output2, sizeof(output2), "Accelero: X: %d, Y: %d, Z: %d\r\n",
-			  accData[0], accData[1], accData[2]);
-	  HAL_UART_Transmit(&huart1, (uint8_t *)output2, len, 100);
+	  float pressure = 	BSP_PSENSOR_ReadPressure();
+	  char output3[50];
+	  len = snprintf(output3, sizeof(output3), "Pressure: %.2f \r\n", pressure);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)output3, len, 100);
 	  HAL_Delay(1000);
 
 
