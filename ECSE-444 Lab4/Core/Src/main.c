@@ -113,9 +113,9 @@ int main(void)
   while (1)
   {
 
+	  float temp = BSP_TSENSOR_ReadTemp();
 	  char output[50];
-	  sprintf(output, "Hello World!");
-	  uint16_t len = strlen(output);
+	  int len = snprintf(output, sizeof(output), "Temperature: %.2f \r\n", temp);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output, len, 100);
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
