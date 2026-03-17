@@ -104,6 +104,7 @@ int main(void)
   MX_I2C2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  BSP_TSENSOR_Init();
 
   /* USER CODE END 2 */
 
@@ -111,6 +112,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  char output[50];
+	  sprintf(output, "Hello World!");
+	  uint16_t len = strlen(output);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)output, len, 100);
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
