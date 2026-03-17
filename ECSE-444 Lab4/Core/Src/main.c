@@ -46,6 +46,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define Part PART_1
+#define PART_1 1
+#define PART_2 2
+#define PART_3 3
+#define PART_4 4
 
 /* USER CODE END PD */
 
@@ -58,6 +63,13 @@
 
 /* USER CODE BEGIN PV */
 
+// Create data structure to store sensor data
+char uartBuf[100];
+float tempData, pressureData;
+int16_t magData[3], accelData[3];
+volatile uint8_t sensorToggle;
+enum {Temperature, Pressure, Magneto, Accelero, All};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,6 +80,62 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// User Functions
+
+void Uart_Print_Sensor(){
+
+	char uartBuffer[64];
+
+	// Choose what data to TX
+	switch (sensorToggle){
+		case(Temperature):{
+			float temp = BSP_TSENSOR_ReadTemp();
+			int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", temp);
+			HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Pressure):{
+			  float pressure = 	BSP_PSENSOR_ReadPressure();
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressure);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Magneto):{
+			  int16_t magData[3];
+			  BSP_MAGNETO_GetXYZ(magData);
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto: X: %d, Y: %d, Z: %d\r\n",
+			                     magData[0], magData[1], magData[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Accelero):{
+			  int16_t accData[3];
+			  BSP_ACCELERO_AccGetXYZ(accData);
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+					  accData[0], accData[1], accData[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+	} // switch
+
+	// TX Data
+	HAL_UART_Transmit(&huart1, (uint8_t*)uartBuffer, strlen(uartBuffer), 100);
+
+} // Uart_Print_Sensor
+
+//Button Interrupt
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+
+if (GPIO_Pin == BUTTON_Pin) {
+	// iterate to next sensor enum each button press
+	sensorToggle = (sensorToggle + 1) % 4;
+	Uart_Print_Sensor();
+	HAL_Delay(1000); // TODO: remove delay
+}
+}
+
+
 
 /* USER CODE END 0 */
 
@@ -116,6 +184,8 @@ int main(void)
   while (1)
   {
 
+#if Part == PART_1
+
 	  // Get temperature data and UART TX
 	  float temp = BSP_TSENSOR_ReadTemp();
 	  char output[50];
@@ -148,6 +218,9 @@ int main(void)
 	  len = snprintf(output3, sizeof(output3), "Pressure: %.2f \r\n", pressure);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output3, len, 100);
 	  HAL_Delay(1000);
+
+	  //#if Part == PART_1
+#endif
 
 
 

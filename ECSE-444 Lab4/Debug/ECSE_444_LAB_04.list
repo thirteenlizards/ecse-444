@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000d258  2**0
                   CONTENTS, READONLY
- 12 .debug_info   0001d047  00000000  00000000  0000d288  2**0
+ 12 .debug_info   0001d14b  00000000  00000000  0000d288  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 000041a5  00000000  00000000  0002a2cf  2**0
+ 13 .debug_abbrev 00004210  00000000  00000000  0002a3d3  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001850  00000000  00000000  0002e478  2**3
+ 14 .debug_aranges 00001858  00000000  00000000  0002e5e8  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 000012c3  00000000  00000000  0002fcc8  2**0
+ 15 .debug_rnglists 000012c9  00000000  00000000  0002fe40  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0002fbbf  00000000  00000000  00030f8b  2**0
+ 16 .debug_macro  0002fbdd  00000000  00000000  00031109  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0002034f  00000000  00000000  00060b4a  2**0
+ 17 .debug_line   00020377  00000000  00000000  00060ce6  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0011d394  00000000  00000000  00080e99  2**0
+ 18 .debug_str    0011d42d  00000000  00000000  0008105d  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  0019e22d  2**0
+ 19 .comment      00000043  00000000  00000000  0019e48a  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  0000796c  00000000  00000000  0019e270  2**2
+ 20 .debug_frame  00007990  00000000  00000000  0019e4d0  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000066  00000000  00000000  001a5bdc  2**0
+ 21 .debug_line_str 00000066  00000000  00000000  001a5e60  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1699,9 +1699,9 @@ int main(void)
  8001242:	f000 fb11 	bl	8001868 <BSP_ACCELERO_Init>
   BSP_PSENSOR_Init();
  8001246:	f000 fbab 	bl	80019a0 <BSP_PSENSOR_Init>
-  /* USER CODE BEGIN WHILE */
-  while (1)
   {
+
+#if Part == PART_1
 
 	  // Get temperature data and UART TX
 	  float temp = BSP_TSENSOR_ReadTemp();
