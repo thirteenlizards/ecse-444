@@ -16,6 +16,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dmamux.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_cortex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_exti.h \
@@ -34,9 +36,25 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/i2c.h ../Core/Inc/main.h ../Core/Inc/octospi.h \
  ../Core/Inc/usart.h ../Core/Inc/gpio.h \
  ../Core/Inc/stm32l4s5i_iot01_gyro.h ../Core/Inc/stm32l4s5i_iot01.h \
- C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h \
- C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h \
- C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h \
+ ../Core/Inc/stm32l4s5i_iot01_accelero.h \
+ ../Core/Inc/stm32l4s5i_iot01_magneto.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lis3mdl/lis3mdl.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lis3mdl/../Common/magneto.h \
+ ../Core/Inc/stm32l4s5i_iot01_hsensor.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/hts221.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/../Common/hsensor.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/../Common/tsensor.h \
+ ../Core/Inc/stm32l4s5i_iot01_psensor.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/lps22hb.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/../Common/psensor.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/../Common/tsensor.h \
+ ../Core/Inc/stm32l4s5i_iot01_tsensor.h \
+ ../Core/Inc/stm32l4s5i_iot01_qspi.h \
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h \
+ ../Core/Inc/stm32l4s5i_iot01.h ../Core/Inc/stm32l4xx_it.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -55,6 +73,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dmamux.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_cortex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_exti.h:
@@ -77,6 +97,23 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/gpio.h:
 ../Core/Inc/stm32l4s5i_iot01_gyro.h:
 ../Core/Inc/stm32l4s5i_iot01.h:
-C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h:
-C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h:
-C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h:
+../Core/Inc/stm32l4s5i_iot01_accelero.h:
+../Core/Inc/stm32l4s5i_iot01_magneto.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lis3mdl/lis3mdl.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lis3mdl/../Common/magneto.h:
+../Core/Inc/stm32l4s5i_iot01_hsensor.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/hts221.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/../Common/hsensor.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/hts221/../Common/tsensor.h:
+../Core/Inc/stm32l4s5i_iot01_psensor.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/lps22hb.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/../Common/psensor.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/lps22hb/../Common/tsensor.h:
+../Core/Inc/stm32l4s5i_iot01_tsensor.h:
+../Core/Inc/stm32l4s5i_iot01_qspi.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h:
+../Core/Inc/stm32l4s5i_iot01.h:
+../Core/Inc/stm32l4xx_it.h:

@@ -17,6 +17,8 @@ Core/Src/stm32l4s5i_iot01_qspi.o: ../Core/Src/stm32l4s5i_iot01_qspi.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dmamux.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_cortex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_exti.h \
@@ -32,7 +34,7 @@ Core/Src/stm32l4s5i_iot01_qspi.o: ../Core/Src/stm32l4s5i_iot01_qspi.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
- C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h
+ C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h
 ../Core/Inc/stm32l4s5i_iot01_qspi.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -51,6 +53,8 @@ Core/Src/stm32l4s5i_iot01_qspi.o: ../Core/Src/stm32l4s5i_iot01_qspi.c \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_gpio_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dmamux.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_dma_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_cortex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_exti.h:
@@ -66,4 +70,4 @@ Core/Src/stm32l4s5i_iot01_qspi.o: ../Core/Src/stm32l4s5i_iot01_qspi.c \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h:
-C:/Users/moram/STM32CubeIDE/workspace_1.13.1/ECSE_444_LAB_04/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h:
+C:/Users/annaj/Documents/ECSE444/ecse-444/ECSE-444\ Lab4/Drivers/Components/../Components/mx25r6435f/mx25r6435f.h:

@@ -26,6 +26,15 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stm32l4s5i_iot01_gyro.h"
+#include "stm32l4s5i_iot01_accelero.h"
+#include "stm32l4s5i_iot01_magneto.h"
+#include "stm32l4s5i_iot01_hsensor.h"
+#include "stm32l4s5i_iot01_psensor.h"
+#include "stm32l4s5i_iot01_tsensor.h"
+#include "stm32l4s5i_iot01_qspi.h"
+#include "stm32l4s5i_iot01.h"
+#include "stm32l4xx_hal_conf.h"
+#include "stm32l4xx_it.h"
 #include "stdio.h"
 #include "string.h"
 /* USER CODE END Includes */
@@ -68,6 +77,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -178,7 +188,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
+  if (htim->Instance == TIM6)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
@@ -200,8 +211,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

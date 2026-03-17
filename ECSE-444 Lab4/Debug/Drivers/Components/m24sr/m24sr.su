@@ -24,8 +24,8 @@
 ../Drivers/Components/m24sr/m24sr.c:1297:10:M24SR_DisablePermanentState	40	static
 ../Drivers/Components/m24sr/m24sr.c:1346:10:M24SR_SendInterrupt	48	static
 ../Drivers/Components/m24sr/m24sr.c:1394:10:M24SR_StateControl	48	static
-../Drivers/Components/m24sr/m24sr.c:1450:10:M24SR_ManageI2CGPO	48	static
-../Drivers/Components/m24sr/m24sr.c:1497:10:M24SR_ManageRFGPO	48	static
+../Drivers/Components/m24sr/m24sr.c:1450:10:M24SR_ManageI2CGPO	40	static
+../Drivers/Components/m24sr/m24sr.c:1497:10:M24SR_ManageRFGPO	40	static
 ../Drivers/Components/m24sr/m24sr.c:1528:17:M24SR_IsAnswerReady	24	static
 ../Drivers/Components/m24sr/m24sr.c:1588:6:M24SR_RFConfig	16	static
 ../Drivers/Components/m24sr/m24sr.c:1606:13:M24SR_SetI2CSynchroMode	16	static
