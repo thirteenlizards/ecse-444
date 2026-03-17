@@ -105,6 +105,9 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   BSP_TSENSOR_Init();
+  BSP_MAGNETO_Init();
+  BSP_ACCELERO_Init();
+  BSP_PSENSOR_Init();
 
   /* USER CODE END 2 */
 
@@ -113,11 +116,43 @@ int main(void)
   while (1)
   {
 
+	  // Get temperature data and UART TX
 	  float temp = BSP_TSENSOR_ReadTemp();
 	  char output[50];
 	  int len = snprintf(output, sizeof(output), "Temperature: %.2f \r\n", temp);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output, len, 100);
 	  HAL_Delay(1000);
+
+
+	  // Get magneto data and UART TX
+	  int16_t magData[3];
+	  BSP_MAGNETO_GetXYZ(magData);
+	  char output1[64];
+	  len = snprintf(output1, sizeof(output1), "Magneto: X: %d, Y: %d, Z: %d\r\n",
+	                     magData[0], magData[1], magData[2]);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)output1, len, 100);
+	  HAL_Delay(1000);
+
+	  // Get accelero data and UART TX
+	  int16_t accData[3];
+	  BSP_ACCELERO_AccGetXYZ(accData);
+	  char output2[64];
+	  len = snprintf(output2, sizeof(output2), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+			  accData[0], accData[1], accData[2]);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)output2, len, 100);
+	  HAL_Delay(1000);
+
+	  // Get pressure data and UART TX
+	  int16_t accData[3];
+	  BSP_ACCELERO_AccGetXYZ(accData);
+	  char output2[64];
+	  len = snprintf(output2, sizeof(output2), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+			  accData[0], accData[1], accData[2]);
+	  HAL_UART_Transmit(&huart1, (uint8_t *)output2, len, 100);
+	  HAL_Delay(1000);
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
