@@ -106,16 +106,16 @@ void SystemClock_Config(void);
 // User Functions
 
 /**
- * @name Uart_Print_Sensor
+ * @name Uart_Read_Print_Sensor
  *
  * Reads the sensor indicated by the global @p sensor_toggle and sends a
  * human-readable string to the serial terminal via @p huart1.
  *
- * @param[in] Global: sensor_toggle (enum) Selects the active sensor to poll.
+ * @param[in] Global: sensorState (enum) Selects the active sensor to poll.
  * @param[in,out] Global: huart1 (handle) The UART interface for transmission.
  */
 
-void Uart_Print_Sensor(){
+void Uart_Read_Print_Sensor(){
 
 	char uartBuffer[64];
 
@@ -143,18 +143,25 @@ void Uart_Print_Sensor(){
 			break;
 		}
 		case(Accelero):{
-			  int16_t accData[3];
-			  BSP_ACCELERO_AccGetXYZ(accData);
+			  int16_t accelData[3];
+			  BSP_ACCELERO_AccGetXYZ(accelData);
 			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Accelero: X: %d, Y: %d, Z: %d\r\n",
-					  accData[0], accData[1], accData[2]);
+					  accelData[0], accelData[1], accelData[2]);
 			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 			break;
 		}
 	} // switch
 
-} // Uart_Print_Sensor
+} // Uart_Read_Print_Sensor
 
 
+/**
+ * @name Read_Sensor
+ *
+ * Reads the sensor indicated by the global @p sensor_toggle
+ *
+ * @param[in] Global: sensorState (enum) Selects the active sensor to poll.
+ */
 
 void Read_Sensor(){
 
@@ -196,18 +203,75 @@ void Read_Sensor(){
 		sampleCount[sensorState] = 0;
 	}
 
-
 } // void Read_Sensor(){
 
-//Button Interrupt
+
+/**
+ * @name Uart_Print_Sensor
+ *
+ * Sends a human-readable string to the serial terminal via @p huart1.
+ *
+ * @param[in] Global: sensorState (enum) Selects which sensor data to print
+ * @param[in] Global: xSample: takes most recent sample from given sensor (DOES NOT GRAB FROM xData BUFFERS)
+ */
+
+void Uart_Print_Sensor(){
+
+	char uartBuffer[64];
+
+	// Choose what data to TX
+	switch (sensorState){
+		case(Temperature):{
+			int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", tempSample);
+			HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Pressure):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressureSample);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Magneto):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto: X: %d, Y: %d, Z: %d\r\n",
+			                     magSample[0], magSample[1], magSample[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Accelero):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+					  accelSample[0], accelSample[1], accelSample[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+	} // switch
+
+} // Uart_Read_Print_Sensor
+
+/**
+ * @name HAL_GPIO_EXTI_Callback
+ *
+ * Callback for GPIO EXTI interrupts
+ *
+ * @param[in] Global: GPIO_Pin
+ * @param[in] Global: sensorState: if BUTTON, toggle to next sensor
+ */
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
-if (GPIO_Pin == BUTTON_PIN) {
-	// iterate to next sensor enum each button press
-	sensorState = (sensorState + 1) % 4;
-	Uart_Print_Sensor();
-}
-}
+
+	if (GPIO_Pin == BUTTON_PIN) {
+
+		// toggle to next sensor
+		sensorState = (sensorState + 1) % 4;
+
+		// read sensor
+		Read_Sensor();
+
+		// write sensor data to uart
+		Uart_Print_Sensor();
+	} // if
+
+} //  HAL_GPIO_EXTI_Callback
 
 
 
@@ -280,11 +344,11 @@ int main(void)
 	  HAL_Delay(1000);
 
 	  // Get accelero data and UART TX
-	  int16_t accData[3];
-	  BSP_ACCELERO_AccGetXYZ(accData);
+	  int16_t accelData[3];
+	  BSP_ACCELERO_AccGetXYZ(accelData);
 	  char output2[64];
 	  len = snprintf(output2, sizeof(output2), "Accelero: X: %d, Y: %d, Z: %d\r\n",
-			  accData[0], accData[1], accData[2]);
+			  accelData[0], accelData[1], accelData[2]);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output2, len, 100);
 	  HAL_Delay(1000);
 
