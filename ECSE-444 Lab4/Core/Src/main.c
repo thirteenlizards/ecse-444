@@ -46,11 +46,23 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+// ifdef Defines
 #define Part PART_1
 #define PART_1 1
 #define PART_2 2
 #define PART_3 3
 #define PART_4 4
+
+// Pin Defines
+#define BUTTON_PIN GPIO_PIN_13
+#define BUTTON_PORT GPIOC
+
+// Number of Samples
+#define NUM_SAMPLES 100
+
+// Number of Sensors
+#define NUM_SENSORS 4
 
 /* USER CODE END PD */
 
@@ -65,10 +77,20 @@
 
 // Create data structure to store sensor data
 char uartBuf[100];
-float tempData, pressureData;
-int16_t magData[3], accelData[3];
-volatile uint8_t sensorToggle;
+float tempSample, pressureSample;
+int16_t magSample[3], accelSample[3];
+volatile uint8_t sensorState;
 enum {Temperature, Pressure, Magneto, Accelero, All};
+
+// Create data structure to store many samples of the data
+float tempData[NUM_SAMPLES];
+float pressureData[NUM_SAMPLES];
+int16_t magData[NUM_SAMPLES][3];
+int16_t accelData[NUM_SAMPLES][3];
+
+// Counter for number of samples taken from each sensor
+uint16_t sampleCount[NUM_SENSORS] = {0};
+
 
 /* USER CODE END PV */
 
@@ -83,29 +105,40 @@ void SystemClock_Config(void);
 
 // User Functions
 
+/**
+ * @name Uart_Print_Sensor
+ *
+ * Reads the sensor indicated by the global @p sensor_toggle and sends a
+ * human-readable string to the serial terminal via @p huart1.
+ *
+ * @param[in] Global: sensor_toggle (enum) Selects the active sensor to poll.
+ * @param[in,out] Global: huart1 (handle) The UART interface for transmission.
+ */
+
 void Uart_Print_Sensor(){
 
 	char uartBuffer[64];
 
+
 	// Choose what data to TX
-	switch (sensorToggle){
+	switch (sensorState){
 		case(Temperature):{
-			float temp = BSP_TSENSOR_ReadTemp();
-			int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", temp);
+			tempSample = BSP_TSENSOR_ReadTemp();
+			int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", tempSample);
 			HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 			break;
 		}
 		case(Pressure):{
-			  float pressure = 	BSP_PSENSOR_ReadPressure();
-			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressure);
+			  pressureSample = 	BSP_PSENSOR_ReadPressure();
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressureSample);
 			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 			break;
 		}
 		case(Magneto):{
-			  int16_t magData[3];
-			  BSP_MAGNETO_GetXYZ(magData);
+			  int16_t magSample[3];
+			  BSP_MAGNETO_GetXYZ(magSample);
 			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto: X: %d, Y: %d, Z: %d\r\n",
-			                     magData[0], magData[1], magData[2]);
+			                     magSample[0], magSample[1], magSample[2]);
 			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 			break;
 		}
@@ -119,19 +152,60 @@ void Uart_Print_Sensor(){
 		}
 	} // switch
 
-	// TX Data
-	HAL_UART_Transmit(&huart1, (uint8_t*)uartBuffer, strlen(uartBuffer), 100);
-
 } // Uart_Print_Sensor
+
+
+
+void Read_Sensor(){
+
+	// Choose what data to TX
+	switch (sensorState){
+		case(Temperature):{
+			tempSample = BSP_TSENSOR_ReadTemp(); // get sample from sensor
+			tempData[sampleCount[Temperature]] = tempSample; // store sensor sample in data array at count index
+			break;
+		}
+		case(Pressure):{
+			pressureSample = 	BSP_PSENSOR_ReadPressure(); // get sample from sensor
+			pressureData[sampleCount[Pressure]] = pressureSample; // store sensor sample in data array at count index
+			break;
+		}
+		case(Magneto):{
+			  BSP_MAGNETO_GetXYZ(magSample); // get sample from sensor
+
+			  for (uint8_t i = 0; i < 3; i++) {
+				  magData[sampleCount[Magneto]][i] = magSample[i]; // store sensor sample in data array at count index
+			  }
+			break;
+		}
+		case(Accelero):{
+			  BSP_ACCELERO_AccGetXYZ(accelSample); // get sample from sensor
+
+			  for (uint8_t i = 0; i < 3; i++) {
+				  accelData[sampleCount[Accelero]][i] = accelSample[i]; // store sensor sample in data array at count index
+			  }
+			break;
+		}
+	} // switch
+
+	// Increment sampleCount at polled sensor index
+	sampleCount[sensorState]++;
+
+	// If filled, reset buffer back to 0 and next iteration will start overwriting
+	if (sampleCount[sensorState] >= NUM_SAMPLES) {
+		sampleCount[sensorState] = 0;
+	}
+
+
+} // void Read_Sensor(){
 
 //Button Interrupt
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
-if (GPIO_Pin == BUTTON_Pin) {
+if (GPIO_Pin == BUTTON_PIN) {
 	// iterate to next sensor enum each button press
-	sensorToggle = (sensorToggle + 1) % 4;
+	sensorState = (sensorState + 1) % 4;
 	Uart_Print_Sensor();
-	HAL_Delay(1000); // TODO: remove delay
 }
 }
 
@@ -184,22 +258,24 @@ int main(void)
   while (1)
   {
 
+	  /*
+	   * Initial Testing for Part 1 Without Button
 #if Part == PART_1
 
 	  // Get temperature data and UART TX
-	  float temp = BSP_TSENSOR_ReadTemp();
+	  tempSample = BSP_TSENSOR_ReadTemp();
 	  char output[50];
-	  int len = snprintf(output, sizeof(output), "Temperature: %.2f \r\n", temp);
+	  int len = snprintf(output, sizeof(output), "Temperature: %.2f \r\n", tempSample);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output, len, 100);
 	  HAL_Delay(1000);
 
 
 	  // Get magneto data and UART TX
-	  int16_t magData[3];
-	  BSP_MAGNETO_GetXYZ(magData);
+	  int16_t magSample[3];
+	  BSP_MAGNETO_GetXYZ(magSample);
 	  char output1[64];
 	  len = snprintf(output1, sizeof(output1), "Magneto: X: %d, Y: %d, Z: %d\r\n",
-	                     magData[0], magData[1], magData[2]);
+	                     magSample[0], magSample[1], magSample[2]);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output1, len, 100);
 	  HAL_Delay(1000);
 
@@ -213,15 +289,15 @@ int main(void)
 	  HAL_Delay(1000);
 
 	  // Get pressure data and UART TX
-	  float pressure = 	BSP_PSENSOR_ReadPressure();
+	  pressure = 	BSP_PSENSOR_ReadPressure();
 	  char output3[50];
-	  len = snprintf(output3, sizeof(output3), "Pressure: %.2f \r\n", pressure);
+	  len = snprintf(output3, sizeof(output3), "pressureSample: %.2f \r\n", pressureSample);
 	  HAL_UART_Transmit(&huart1, (uint8_t *)output3, len, 100);
 	  HAL_Delay(1000);
 
 	  //#if Part == PART_1
 #endif
-
+*/
 
 
     /* USER CODE END WHILE */
