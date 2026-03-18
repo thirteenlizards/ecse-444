@@ -48,7 +48,7 @@
 /* USER CODE BEGIN PD */
 
 // ifdef Defines
-#define Part PART_1
+#define Part PART_3
 #define PART_1 1
 #define PART_2 2
 #define PART_3 3
@@ -76,7 +76,7 @@
 /* USER CODE BEGIN PV */
 
 // Create data structure to store sensor data
-char uartBuf[100];
+char uartBuffer[100];
 float tempSample, pressureSample;
 int16_t magSample[3], accelSample[3];
 volatile uint8_t sensorState;
@@ -105,6 +105,7 @@ void SystemClock_Config(void);
 
 // User Functions
 
+#if Part == PART_1
 /**
  * @name Uart_Read_Print_Sensor
  *
@@ -116,8 +117,6 @@ void SystemClock_Config(void);
  */
 
 void Uart_Read_Print_Sensor(){
-
-	char uartBuffer[64];
 
 
 	// Choose what data to TX
@@ -153,6 +152,8 @@ void Uart_Read_Print_Sensor(){
 	} // switch
 
 } // Uart_Read_Print_Sensor
+
+#endif
 
 
 /**
@@ -217,7 +218,6 @@ void Read_Sensor(){
 
 void Uart_Print_Sensor(){
 
-	char uartBuffer[64];
 
 	// Choose what data to TX
 	switch (sensorState){
@@ -314,6 +314,60 @@ int main(void)
   BSP_MAGNETO_Init();
   BSP_ACCELERO_Init();
   BSP_PSENSOR_Init();
+  BSP_QSPI_Init();
+
+#if Part == PART_3
+  // Verify that QSPI Flash Functions Work
+  	  // Access to 64 Mb = 8MB flash
+  	  // Address range from 0->max-1 (recall *1024)
+  	  	  // 0x000000 -> 0x7FFFFF
+  	  	  // uint32_t address size
+  	  // Data r/w in min. units of bytes
+  	  	  // write is 256 bytes max
+  	  	  // Block: 64kB, 0x10000 aligned
+  	  	  // Sector: 4kB, 0x1000 aligned
+  	  	  // Page: 256B, 0x100 aligned
+
+
+  // Erase block
+  // uint8_t BSP_QSPI_Erase_Block(uint32_t BlockAddress);
+  uint32_t blockAddress = 0x000000;
+
+  if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
+      Error_Handler();
+  }
+
+  // Write page at block base address
+  	  // uint8_t BSP_QSPI_Write (uint8_t* pData,     uint32_t WriteAddr,     uint32_t Size);
+  	  // Maximum size: 256 B = 1 Page to be safe
+  uint8_t writeData[256] = "Hello World"; // set size of writeData to be
+  if (BSP_QSPI_Write(writeData, blockAddress, sizeof(writeData)) != QSPI_OK) {
+      Error_Handler();
+  }
+
+  // Read page at block base address
+  	  // uint8_t BSP_QSPI_Read (uint8_t* pData,     uint32_t ReadAddr,     uint32_t Size);
+  	  // Reading back single page that was written
+  uint8_t readData[256] = {0};
+  if (BSP_QSPI_Read(readData, blockAddress, sizeof(readData)) != QSPI_OK) {
+      Error_Handler();
+  }
+
+  // Check if read == write
+  for (int i = 0; i < sizeof(readData); i++) {
+
+	  // if fail transmit message and handle
+      if (readData[i] != writeData[i]) {
+          int len = snprintf(uartBuffer, sizeof(uartBuffer), "uh oh spaghettio");
+          HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+          Error_Handler();
+      }
+  }
+
+  // if success send data read
+  HAL_UART_Transmit(&huart1, (uint8_t *)readData, sizeof(readData), 100);
+
+#endif
 
   /* USER CODE END 2 */
 
