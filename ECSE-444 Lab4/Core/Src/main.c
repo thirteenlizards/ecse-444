@@ -14,6 +14,11 @@
   * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
+  ******************************************************************************
+	TODO:
+	* make sure read and write in correct format from QSPI flash for all sensors
+	* calculate statistics for sensor values
+	* function to display statistics for sensor values (modify Uart_Print_Sensor and sensorState logic)
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -63,6 +68,14 @@
 
 // Number of Sensors
 #define NUM_SENSORS 4
+
+// Flash addresses for sensor data
+#define FLASH_BLOCK_ADDR 		0x000000
+#define TEMP_FLASH_ADDR			0x000000
+#define PRESSURE_FLASH_ADDR  	0x001000
+#define MAG_FLASH_ADDR			0x002000
+#define ACCEL_FLASH_ADDR		0x003000
+
 
 /* USER CODE END PD */
 
@@ -272,6 +285,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	} // if
 
 } //  HAL_GPIO_EXTI_Callback
+
+
+/**
+ * @name QSPI_Write_Sensors
+ *
+ * Writes data from sensor data buffers to flash
+ * TODO: add error checking
+ *
+ * @param[in] Global: Sensor Data Buffers: tempData, pressureData, magData, accelSample
+ */
+void QSPI_Write_Sensors() {
+
+	BSP_QSPI_Erase_Block(FLASH_BLOCK_ADDR);
+
+	// tempData[100] = 100 floats * 4B/float = 400B
+    BSP_QSPI_Write((uint8_t*)tempData, TEMP_FLASH_ADDR, sizeof(tempData));
+
+    // pressureData[100] = 100 floats * 4B/float = 400B
+    BSP_QSPI_Write((uint8_t*)pressureData, PRESSURE_FLASH_ADDR, sizeof(pressureData));
+
+    // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
+    BSP_QSPI_Write((uint8_t*)magData, MAG_FLASH_ADDR, sizeof(magData));
+
+    // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
+    BSP_QSPI_Write((uint8_t*)accelSample, ACCEL_FLASH_ADDR, sizeof(accelSample));
+
+}
 
 
 
