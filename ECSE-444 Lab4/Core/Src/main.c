@@ -16,9 +16,12 @@
   ******************************************************************************
   ******************************************************************************
 	TODO:
-	* make sure read and write in correct format from QSPI flash for all sensors
+	* make sure read and write in correct format from QSPI flash for all sensors (functions written, not yet tested)
 	* calculate statistics for sensor values
 	* function to display statistics for sensor values (modify Uart_Print_Sensor and sensorState logic)
+	* make sure sequence of get data -> store in flash -> read from flash -> display all is WORKING
+	* add OS and fuck everything up
+	*
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -95,7 +98,7 @@ int16_t magSample[3], accelSample[3];
 volatile uint8_t sensorState;
 enum {Temperature, Pressure, Magneto, Accelero, All};
 
-// Create data structure to store many samples of the data
+// Create data structure to store samples from sensor
 float tempData[NUM_SAMPLES];
 float pressureData[NUM_SAMPLES];
 int16_t magData[NUM_SAMPLES][3];
@@ -103,6 +106,13 @@ int16_t accelData[NUM_SAMPLES][3];
 
 // Counter for number of samples taken from each sensor
 uint16_t sampleCount[NUM_SENSORS] = {0};
+
+// Create data structure to store sensor data read from flash
+float tempDataFlashRead[NUM_SAMPLES];
+float pressureDataFlashRead[NUM_SAMPLES];
+int16_t magDataFlashRead[NUM_SAMPLES][3];
+int16_t accelDataFlashRead[NUM_SAMPLES][3];
+
 
 
 /* USER CODE END PV */
@@ -276,7 +286,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 		// toggle to next sensor
 		sensorState = (sensorState + 1) % 4;
-
+// 1 check if max index reached (see defines)
+// 2 if yes, then run the function save the xData to flash
+// 3 then run function to get it back from flash
+// 4 then display and see if it makes sense, some display code idk
 		// read sensor
 		Read_Sensor();
 
@@ -308,8 +321,40 @@ void QSPI_Write_Sensors() {
     // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
     BSP_QSPI_Write((uint8_t*)magData, MAG_FLASH_ADDR, sizeof(magData));
 
+    // accelData[100][3] = 100 floats * 3 * 4B/float = 1200B
+    BSP_QSPI_Write((uint8_t*)accelData, ACCEL_FLASH_ADDR, sizeof(accelData));
+
+}
+
+/**
+ * @name QSPI_Read_Sensors
+ *
+ * Reads sensor data from flash to other data buffers
+ *
+ * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
+ */
+
+void QSPI_Read_Sensors() {
+
+	// tempData[100] = 100 floats * 4B/float = 400B
+	if (BSP_QSPI_Read((uint8_t*)tempDataFlashRead, TEMP_FLASH_ADDR, sizeof(tempDataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
+    // pressureData[100] = 100 floats * 4B/float = 400B
+	if (BSP_QSPI_Read((uint8_t*)pressureDataFlashRead, PRESSURE_FLASH_ADDR, sizeof(pressureDataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
     // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
-    BSP_QSPI_Write((uint8_t*)accelSample, ACCEL_FLASH_ADDR, sizeof(accelSample));
+	if (BSP_QSPI_Read((uint8_t*)magDataFlashRead, MAG_FLASH_ADDR, sizeof(magDataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
+    // accelData[100][3] = 100 floats * 3 * 4B/float = 1200B
+	if (BSP_QSPI_Read((uint8_t*)accelDataFlashRead, ACCEL_FLASH_ADDR, sizeof(accelDataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
 
 }
 
