@@ -2,10 +2,10 @@
 ../Core/Src/main.c:255:6:Uart_Display_Statistics	168	static
 ../Core/Src/main.c:404:6:Uart_Print_Sensor	32	static
 ../Core/Src/main.c:449:6:HAL_GPIO_EXTI_Callback	16	static
-../Core/Src/main.c:480:6:Sensors_Write_to_Flash	8	static
-../Core/Src/main.c:506:6:Sensors_Read_from_Flash	8	static
-../Core/Src/main.c:538:5:main	8	static
-../Core/Src/main.c:750:6:SystemClock_Config	96	static
-../Core/Src/main.c:797:5:__io__putchar	16	static
-../Core/Src/main.c:811:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:829:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:483:6:Sensors_Write_to_Flash	8	static
+../Core/Src/main.c:509:6:Sensors_Read_from_Flash	8	static
+../Core/Src/main.c:541:5:main	8	static
+../Core/Src/main.c:753:6:SystemClock_Config	96	static
+../Core/Src/main.c:800:5:__io__putchar	16	static
+../Core/Src/main.c:814:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:832:6:Error_Handler	4	static,ignoring_inline_asm

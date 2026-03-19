@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
@@ -35,6 +36,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+osMutexId stateMutexHandle; // protection so sensor state can't be changed in the middle of trying to write data
+osMutexDef(stateMutex);
 
 /* USER CODE END PD */
 
@@ -45,9 +48,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+volatile bool buttonPressed = false;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
+osThreadId UartTaskHandle;
+osThreadId ButtonTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -55,6 +61,8 @@ osThreadId defaultTaskHandle;
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
+void StartUartTask(void const * argument);
+void StartButtonTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -86,6 +94,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
+	stateMutexHandle = osMutexCreate(osMutex(stateMutex)); // handle to make sure state isn't overwritten while printing
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -104,6 +113,14 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of defaultTask */
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of UartTask */
+  osThreadDef(UartTask, StartUartTask, osPriorityIdle, 0, 256);
+  UartTaskHandle = osThreadCreate(osThread(UartTask), NULL);
+
+  /* definition and creation of ButtonTask */
+  osThreadDef(ButtonTask, StartButtonTask, osPriorityNormal, 0, 128);
+  ButtonTaskHandle = osThreadCreate(osThread(ButtonTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -130,10 +147,71 @@ void StartDefaultTask(void const * argument)
 
     if (printDataFlag) {
     	printDataFlag = false;
+
+    	// print sensor data with guards to make sure state can't change
+    	osMutexWait(stateMutexHandle, osWaitForever);
     	Uart_Print_Sensor();
+    	osMutexRelease(stateMutexHandle);
     }
   }
   /* USER CODE END StartDefaultTask */
+}
+
+/* USER CODE BEGIN Header_StartUartTask */
+/**
+* @brief Function implementing the UartTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartUartTask */
+void StartUartTask(void const * argument)
+{
+  /* USER CODE BEGIN StartUartTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartUartTask */
+}
+
+/* USER CODE BEGIN Header_StartButtonTask */
+/**
+* @brief Function implementing the ButtonTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartButtonTask */
+void StartButtonTask(void const * argument)
+{
+  /* USER CODE BEGIN StartButtonTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1); // leave at START of for loop
+
+    // Poll button
+    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) == GPIO_PIN_RESET) {
+
+    	// hold state
+    	osMutexWait(stateMutexHandle, osWaitForever);
+
+		// toggle to next sensor or stats
+		sensorState = (sensorState + 1) % StateCount;
+
+		// release state
+		osMutexRelease(stateMutexHandle);
+
+		// write sensor data to uart
+		printDataFlag = true;
+
+		 osDelay(50); // debouncing
+
+    } // for
+
+
+  }
+  /* USER CODE END StartButtonTask */
 }
 
 /* Private application code --------------------------------------------------*/

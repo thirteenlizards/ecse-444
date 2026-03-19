@@ -58,7 +58,7 @@
 /* USER CODE BEGIN PD */
 
 // ifdef Defines
-#define Part PART_35
+#define Part PART_4
 #define PART_1 1
 #define PART_2 2
 #define PART_3 3
@@ -451,6 +451,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	if (GPIO_Pin == BUTTON_PIN) {
 
+#if Part == Part_4
+
 		// toggle to next sensor or stats
 		sensorState = (sensorState + 1) % StateCount;
 #if Part == PART_3
@@ -464,6 +466,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 		// write sensor data to uart
 		printDataFlag = true;
+#endif
 	} // if
 
 } //  HAL_GPIO_EXTI_Callback
