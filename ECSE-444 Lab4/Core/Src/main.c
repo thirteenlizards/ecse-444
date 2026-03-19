@@ -16,7 +16,8 @@
   ******************************************************************************
   ******************************************************************************
 	TODO:
-	* make sure read and write in correct format from QSPI flash for all sensors (functions written, not yet tested)
+	* make sure read and write in correct format from QSPI flash for all sensors (functions written, not yet tested) -> DONE
+	*
 	* calculate statistics for sensor values
 	* function to display statistics for sensor values (modify Uart_Print_Sensor and sensorState logic)
 	* make sure sequence of get data -> store in flash -> read from flash -> display all is WORKING
@@ -96,7 +97,7 @@ char uartBuffer[100];
 float tempSample, pressureSample;
 int16_t magSample[3], accelSample[3];
 volatile uint8_t sensorState;
-enum {Temperature, Pressure, Magneto, Accelero, All};
+enum {Temperature, Pressure, Magneto, Accelero, Statistics};
 
 // Create data structure to store samples from sensor
 float tempData[NUM_SAMPLES];
@@ -182,7 +183,7 @@ void Uart_Read_Print_Sensor(){
 /**
  * @name Read_Sensor
  *
- * Reads the sensor indicated by the global @p sensor_toggle
+ * Read all sensors
  *
  * @param[in] Global: sensorState (enum) Selects the active sensor to poll.
  */
@@ -190,44 +191,57 @@ void Uart_Read_Print_Sensor(){
 void Read_Sensor(){
 
 	// Choose what data to TX
-	switch (sensorState){
-		case(Temperature):{
-			tempSample = BSP_TSENSOR_ReadTemp(); // get sample from sensor
-			tempData[sampleCount[Temperature]] = tempSample; // store sensor sample in data array at count index
-			break;
-		}
-		case(Pressure):{
-			pressureSample = 	BSP_PSENSOR_ReadPressure(); // get sample from sensor
-			pressureData[sampleCount[Pressure]] = pressureSample; // store sensor sample in data array at count index
-			break;
-		}
-		case(Magneto):{
-			  BSP_MAGNETO_GetXYZ(magSample); // get sample from sensor
+	tempSample = BSP_TSENSOR_ReadTemp(); // get sample from sensor
+	tempData[sampleCount[Temperature]] = tempSample; // store sensor sample in data array at count index
 
-			  for (uint8_t i = 0; i < 3; i++) {
-				  magData[sampleCount[Magneto]][i] = magSample[i]; // store sensor sample in data array at count index
-			  }
-			break;
-		}
-		case(Accelero):{
-			  BSP_ACCELERO_AccGetXYZ(accelSample); // get sample from sensor
+	pressureSample = 	BSP_PSENSOR_ReadPressure(); // get sample from sensor
+	pressureData[sampleCount[Pressure]] = pressureSample; // store sensor sample in data array at count index
 
-			  for (uint8_t i = 0; i < 3; i++) {
-				  accelData[sampleCount[Accelero]][i] = accelSample[i]; // store sensor sample in data array at count index
-			  }
-			break;
-		}
-	} // switch
+	BSP_MAGNETO_GetXYZ(magSample); // get sample from sensor
+
+   for (uint8_t i = 0; i < 3; i++) {
+	  magData[sampleCount[Magneto]][i] = magSample[i]; // store sensor sample in data array at count index
+    } // for
+
+	BSP_ACCELERO_AccGetXYZ(accelSample); // get sample from sensor
+
+    for (uint8_t i = 0; i < 3; i++) {
+	   accelData[sampleCount[Accelero]][i] = accelSample[i]; // store sensor sample in data array at count index
+    } // for
+
 
 	// Increment sampleCount at polled sensor index
-	sampleCount[sensorState]++;
+    	// originially had seperate indices because took samples at different times adn now don't
+	sampleCount[0]++;
+	sampleCount[1]++;
+	sampleCount[2]++;
 
 	// If filled, reset buffer back to 0 and next iteration will start overwriting
 	if (sampleCount[sensorState] > (NUM_SAMPLES - 1)) {
-		sampleCount[sensorState] = 0;
-	}
+		sampleCount[0] = 0;
+		sampleCount[1] = 0;
+		sampleCount[2] = 0;
+	} // if
 
-} // void Read_Sensor(){
+} // void Read_Sensor()
+
+/**
+ * @name Uart_Display_Statistics
+ *
+ * Calculate statistics from data stored in flash and display on serial terminal via @p huart1.
+ *
+ * @param[in] Global: sensorState (enum) Selects which sensor data to print
+ * @param[in] Global: xSample: takes most recent sample from given sensor (DOES NOT GRAB FROM xData BUFFERS)
+ */
+
+void Uart_Display_Statistics(){
+
+	// get sasmple count, doesn't matter which one because always read all 3 sensors
+	uint8_t sampleCountCurrent = sampleCount[1];
+
+// do statistics
+
+}
 
 
 /**
@@ -266,9 +280,14 @@ void Uart_Print_Sensor(){
 			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 			break;
 		}
+		case(Statistics): {
+			Uart_Display_Statistics();
+			break;
+		}
 	} // switch
 
 } // Uart_Read_Print_Sensor
+
 
 /**
  * @name HAL_GPIO_EXTI_Callback
