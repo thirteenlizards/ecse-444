@@ -436,6 +436,50 @@ void Uart_Print_Sensor(){
 
 } // Uart_Print_Sensor
 
+/**
+ * @name Uart_Print_Sensor_State
+ *
+ * Sends a human-readable string to the serial terminal via @p huart1.
+ *
+ * @param[in] Global: sensorState (enum) Selects which sensor data to print
+ * @param[in] Global: xSample: takes most recent sample from given sensor (DOES NOT GRAB FROM xData BUFFERS)
+ */
+
+void Uart_Print_Sensor_State(SensorState state){
+
+
+	// Choose what data to TX
+	switch (state){
+		case(Temperature):{
+			int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", tempSample);
+			HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Pressure):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressureSample);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Magneto):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto: X: %d, Y: %d, Z: %d\r\n",
+			                     magSample[0], magSample[1], magSample[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Accelero):{
+			  int len = snprintf(uartBuffer, sizeof(uartBuffer), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+					  accelSample[0], accelSample[1], accelSample[2]);
+			  HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+			break;
+		}
+		case(Statistics): {
+			Uart_Display_Statistics();
+			break;
+		}
+	} // switch
+
+} // Uart_Print_Sensor
+
 
 /**
  * @name HAL_GPIO_EXTI_Callback

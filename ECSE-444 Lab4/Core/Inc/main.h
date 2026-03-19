@@ -32,7 +32,14 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-
+typedef enum {
+    Temperature,
+    Pressure,
+    Magneto,
+    Accelero,
+    Statistics,
+    StateCount
+} SensorState;
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -59,6 +66,7 @@ void Uart_Display_Statistics();
 void Uart_Print_Sensor();
 void Sensors_Write_to_Flash();
 void Sensors_Read_from_Flash();
+void Uart_Print_Sensor_State(SensorState state);
 
 /* USER CODE END EFP */
 
@@ -89,7 +97,6 @@ extern char uartBuffer[256];
 extern float tempSample, pressureSample;
 extern int16_t magSample[3], accelSample[3];
 extern volatile uint8_t sensorState;
-enum {Temperature, Pressure, Magneto, Accelero, Statistics, StateCount};
 
 // Create data structure to store samples from sensor
 extern float tempData[NUM_SAMPLES];

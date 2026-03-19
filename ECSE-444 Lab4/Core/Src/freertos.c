@@ -139,21 +139,18 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1); // leave at START of for loop
+	  for(;;)
+	  {
+	    osDelay(100);
 
-    Read_Sensor();
+	    Read_Sensor();
 
-    if (printDataFlag) {
-    	printDataFlag = false;
+	    osMutexWait(stateMutexHandle, osWaitForever);
+	    SensorState currentState = sensorState;
+	    osMutexRelease(stateMutexHandle);
 
-    	// print sensor data with guards to make sure state can't change
-    	osMutexWait(stateMutexHandle, osWaitForever);
-    	Uart_Print_Sensor();
-    	osMutexRelease(stateMutexHandle);
-    }
-  }
+	    Uart_Print_Sensor_State(currentState);  // always print every 100ms
+	  }
   /* USER CODE END StartDefaultTask */
 }
 
@@ -186,31 +183,23 @@ void StartButtonTask(void const * argument)
 {
   /* USER CODE BEGIN StartButtonTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1); // leave at START of for loop
+	  for(;;)
+	  {
+	    osDelay(10);
 
-    // Poll button
-    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) == GPIO_PIN_RESET) {
+	    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) == GPIO_PIN_RESET) {
 
-    	// hold state
-    	osMutexWait(stateMutexHandle, osWaitForever);
+	      // wait for release
+	      while (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) == GPIO_PIN_RESET) {
+	        osDelay(10);
+	      }
+	      osDelay(50); // debounce release
 
-		// toggle to next sensor or stats
-		sensorState = (sensorState + 1) % StateCount;
-
-		// release state
-		osMutexRelease(stateMutexHandle);
-
-		// write sensor data to uart
-		printDataFlag = true;
-
-		 osDelay(50); // debouncing
-
-    } // for
-
-
-  }
+	      osMutexWait(stateMutexHandle, osWaitForever);
+	      sensorState = (sensorState + 1) % StateCount;
+	      osMutexRelease(stateMutexHandle);
+	    }
+	  }
   /* USER CODE END StartButtonTask */
 }
 
