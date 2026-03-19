@@ -57,10 +57,11 @@
 /* USER CODE BEGIN PD */
 
 // ifdef Defines
-#define Part PART_3
+#define Part PART_35
 #define PART_1 1
 #define PART_2 2
 #define PART_3 3
+#define PART_35 5
 #define PART_4 4
 
 // Pin Defines
@@ -121,6 +122,8 @@ int16_t accelDataFlashRead[NUM_SAMPLES][3];
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void Sensors_Read_from_Flash();
+void Sensors_Write_to_Flash();
 
 /* USER CODE END PFP */
 
@@ -218,9 +221,14 @@ void Read_Sensor(){
 
 	// If filled, reset buffer back to 0 and next iteration will start overwriting
 	if (sampleCount[sensorState] > (NUM_SAMPLES - 1)) {
+
+		// reset iterations back to 0
 		sampleCount[0] = 0;
 		sampleCount[1] = 0;
 		sampleCount[2] = 0;
+
+		// save sensor data to flash
+		Sensors_Write_to_Flash();
 	} // if
 
 } // void Read_Sensor()
@@ -236,12 +244,112 @@ void Read_Sensor(){
 
 void Uart_Display_Statistics(){
 
-	// get sasmple count, doesn't matter which one because always read all 3 sensors
-	uint8_t sampleCountCurrent = sampleCount[1];
+	// sources:
+		// https://arm-software.github.io/CMSIS-DSP/main/group__VarianceExample.html
 
-// do statistics
 
-}
+	// Pull all 4 buffers from flash
+		// assume by the time a human has time to do the 4th button press, we have enough data in flash to display statistics
+	Sensors_Read_from_Flash();
+
+	// Calculate statistics
+		// For each sensor, display: number of samples, sample mean, and sample variance
+
+	float tempDataSum = 0;
+	float pressureDataSum = 0;
+	float magDataSum[3] = {0};
+	float accelDataSum[3] = {0};
+
+	float tempDataMean = 0;
+	float pressureDataMean = 0;
+	float magDataMean[3] = {0};
+	float accelDataMean[3] = {0};
+
+	float tempDataVariance = 0;
+	float pressureDataVariance = 0;
+	float magDataVariance[3] = {0};
+	float accelDataVariance[3] = {0};
+
+
+	// Calculate the sum
+	for (uint8_t i = 0; i < NUM_SAMPLES; i++) {
+
+		tempDataSum += tempDataFlashRead[i];
+		pressureDataSum += pressureDataFlashRead[i];
+
+		for (uint8_t j = 0; j < 3; j++) {
+			magDataSum[j] += (float)magDataFlashRead[i][j];
+			accelDataSum[j] += (float)accelDataFlashRead[i][j];
+
+		} // for j
+	} // for i
+
+
+	// Calculate the mean
+		//  x' = (x[0] + x[1] + ... + x[n-1]) / N
+	tempDataMean = tempDataSum/(float)NUM_SAMPLES;
+	pressureDataMean = pressureDataSum/100.0f;
+
+	for (uint8_t j = 0; j < 3; j++) {
+		magDataMean[j] = magDataSum[j]/(float)NUM_SAMPLES;
+		accelDataMean[j] = accelDataSum[j]/(float)NUM_SAMPLES;
+	} // for j
+
+
+	// Calculate the variance
+		// variance = ((x[0] - x') * (x[0] - x') + (x[1] - x') * (x[1] - x') + ... + * (x[n-1] - x') * (x[n-1] - x')) / (N)
+
+	for (uint8_t i = 0; i < NUM_SAMPLES; i++) {
+		tempDataVariance = tempDataFlashRead[i] - tempDataMean;
+		pressureDataVariance = pressureDataFlashRead[i] - pressureDataMean;
+
+		for (uint8_t j = 0; j < 3; j++) {
+			magDataVariance[j] = (float)magDataFlashRead[i][j] - magDataMean[j];
+			accelDataVariance[j] = (float)accelDataFlashRead[i][j] - accelDataMean[j];
+		} // for j
+	} // for i
+
+
+	// Display statistics
+
+	//number of samples, sample mean, and sample variance
+
+		// display number of samples
+	uint8_t len = snprintf(uartBuffer, sizeof(uartBuffer), "NUMBER OF SAMPLES: %d/r/n/n", (uint8_t)NUM_SAMPLES);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+
+		// display sample mean
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE MEAN: %f/r/n", tempDataMean);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE MEAN: %f/r/n", pressureDataMean);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "MAGNETO MEAN: X: %f, Y: %f, Z: %f\r\n",
+			magDataMean[0], magDataMean[1], magDataMean[2]);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "ACCEL MEAN: X: %f, Y: %f, Z: %f\r\n\n",
+			accelDataMean[0], accelDataMean[1], accelDataMean[2]);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+		// display sample variance
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE VARIANCE: %f/r/n", tempDataVariance);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE VARIANCE: %f/r/n", pressureDataVariance);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "MAGNETO VARIANCE: X: %f, Y: %f, Z: %f\r\n",
+			magDataVariance[0], magDataVariance[1], magDataVariance[2]);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "ACCEL VARIANCE: X: %f, Y: %f, Z: %f\r\n\n",
+			accelDataVariance[0], accelDataVariance[1], accelDataVariance[2]);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+} // void Uart_Display_Statistics(){
 
 
 /**
@@ -286,7 +394,7 @@ void Uart_Print_Sensor(){
 		}
 	} // switch
 
-} // Uart_Read_Print_Sensor
+} // Uart_Print_Sensor
 
 
 /**
@@ -303,16 +411,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	if (GPIO_Pin == BUTTON_PIN) {
 
-		// toggle to next sensor
-		sensorState = (sensorState + 1) % 4;
-
-// 1 check if max index reached (see defines)
-// 2 if yes, then run the function save the xData to flash
-// 3 then run function to get it back from flash
-// 4 then display and see if it makes sense, some display code idk
-
-		// read sensor
-		Read_Sensor();
+		// toggle to next sensor or stats
+		sensorState = (sensorState + 1) % 5;
+#if Part == PART_3
+		// REMOVED TO MAKE READ_SENSOR BE CONSTANTLY HAPPENING
+		// if sensor state isn't asking for statistics, don't display
+		if (sensorState != Statistics) {
+			// read sensor
+			Read_Sensor();
+		} // if
+#endif
 
 		// write sensor data to uart
 		Uart_Print_Sensor();
@@ -523,10 +631,11 @@ int main(void)
 #endif
 */
 // Check data data can be r/w from flash
-#if Part == PART_3
+
 	  // get data from all the sensors
 	    Read_Sensor();
 
+#if Part == PART_3
 	    // when arrays are filled (all at the same time, so doesn't matter which sensorState)
 		if (sampleCount[sensorState] == (NUM_SAMPLES - 1)) {
 			// save to flash
