@@ -1392,7 +1392,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
  800108a:	4b0a      	ldr	r3, [pc, #40]	@ (80010b4 <MX_FREERTOS_Init+0x30>)
  800108c:	1d3c      	adds	r4, r7, #4
  800108e:	461d      	mov	r5, r3
