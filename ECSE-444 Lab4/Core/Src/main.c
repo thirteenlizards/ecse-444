@@ -366,17 +366,20 @@ void Uart_Display_Statistics(){
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
 		// display sample variance
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE VARIANCE: %f\r\n", tempDataVariance);
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "VARIANCES:\r\n");
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE VARIANCE: %f\r\n", pressureDataVariance);
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature Variance: %f\r\n", tempDataVariance);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "MAGNETO VARIANCE: X: %f, Y: %f, Z: %f\r\n",
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure Variance: %f\r\n", pressureDataVariance);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto Variance: X: %f, Y: %f, Z: %f\r\n",
 			magDataVariance[0], magDataVariance[1], magDataVariance[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "ACCEL VARIANCE: X: %f, Y: %f, Z: %f\r\n\n",
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Accel Variance: X: %f, Y: %f, Z: %f\r\n\n",
 			accelDataVariance[0], accelDataVariance[1], accelDataVariance[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
