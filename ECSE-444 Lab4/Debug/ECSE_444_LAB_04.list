@@ -3318,7 +3318,7 @@ int main(void)
 
 08001ea8 <SystemClock_Config>:
 /**
-  * @brief System Clock Configuration
+  * @bref System Clock Configuration
   * @retval None
   */
 void SystemClock_Config(void)
