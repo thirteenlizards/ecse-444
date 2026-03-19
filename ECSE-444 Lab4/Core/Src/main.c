@@ -223,7 +223,7 @@ void Read_Sensor(){
 	sampleCount[sensorState]++;
 
 	// If filled, reset buffer back to 0 and next iteration will start overwriting
-	if (sampleCount[sensorState] >= NUM_SAMPLES) {
+	if (sampleCount[sensorState] > (NUM_SAMPLES - 1)) {
 		sampleCount[sensorState] = 0;
 	}
 
@@ -286,10 +286,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 		// toggle to next sensor
 		sensorState = (sensorState + 1) % 4;
+
 // 1 check if max index reached (see defines)
 // 2 if yes, then run the function save the xData to flash
 // 3 then run function to get it back from flash
 // 4 then display and see if it makes sense, some display code idk
+
 		// read sensor
 		Read_Sensor();
 
@@ -301,14 +303,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 
 /**
- * @name QSPI_Write_Sensors
+ * @name Sensors_Write_to_Flash() {
  *
  * Writes data from sensor data buffers to flash
  * TODO: add error checking
  *
  * @param[in] Global: Sensor Data Buffers: tempData, pressureData, magData, accelSample
  */
-void QSPI_Write_Sensors() {
+void Sensors_Write_to_Flash() {
 
 	BSP_QSPI_Erase_Block(FLASH_BLOCK_ADDR);
 
@@ -327,14 +329,14 @@ void QSPI_Write_Sensors() {
 }
 
 /**
- * @name QSPI_Read_Sensors
+ * @name Sensors_Read_from_Flash() {s
  *
  * Reads sensor data from flash to other data buffers
  *
  * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
  */
 
-void QSPI_Read_Sensors() {
+void Sensors_Read_from_Flash() {
 
 	// tempData[100] = 100 floats * 4B/float = 400B
 	if (BSP_QSPI_Read((uint8_t*)tempDataFlashRead, TEMP_FLASH_ADDR, sizeof(tempDataFlashRead)) != QSPI_OK){
@@ -501,6 +503,52 @@ int main(void)
 	  //#if Part == PART_1
 #endif
 */
+// Check data data can be r/w from flash
+#if Part == PART_3
+	  // get data from all the sensors
+	    Read_Sensor();
+
+	    // when arrays are filled (all at the same time, so doesn't matter which sensorState)
+		if (sampleCount[sensorState] == (NUM_SAMPLES - 1)) {
+			// save to flash
+			Sensors_Write_to_Flash();
+
+			// read from flash
+			Sensors_Read_from_Flash();
+
+			// print data at a few random or just read in debug
+			for (uint8_t i = 0; i < 100; i++) {
+
+				// print UART for each sensor
+
+				// print temperature sensor
+				int len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature: %.2f \r\n", tempDataFlashRead[i]);
+				HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+
+				// print pressure sensor
+				len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure: %.2f \r\n", pressureDataFlashRead[i]);
+				HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+				// print magneto sensor
+				len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto: X: %d, Y: %d, Z: %d\r\n",
+				                     magDataFlashRead[i][0], magDataFlashRead[i][1], magDataFlashRead[i][2]);
+				HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+
+				// print accel sensor
+				len = snprintf(uartBuffer, sizeof(uartBuffer), "Accelero: X: %d, Y: %d, Z: %d\r\n",
+				accelDataFlashRead[i][0], accelDataFlashRead[i][1], accelDataFlashRead[i][2]);
+				HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+				// add spaces before next transmission
+				len = snprintf(uartBuffer, sizeof(uartBuffer), "\r\n\r\n");
+				HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+
+			} // for
+		} // if
+#endif
 
 
     /* USER CODE END WHILE */
