@@ -197,6 +197,7 @@ void StartButtonTask(void const * argument)
 
 	      osMutexWait(stateMutexHandle, osWaitForever);
 	      sensorState = (sensorState + 1) % StateCount;
+	      printDataFlag = true;
 	      osMutexRelease(stateMutexHandle);
 	    }
 	  }

@@ -389,6 +389,8 @@ void Uart_Display_Statistics(){
 			accelDataVariance[0], accelDataVariance[1], accelDataVariance[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
+	printDataFlag = false;
+
 } // void Uart_Display_Statistics(){
 
 
@@ -473,7 +475,9 @@ void Uart_Print_Sensor_State(SensorState state){
 			break;
 		}
 		case(Statistics): {
-			Uart_Display_Statistics();
+			if (printDataFlag) {
+				Uart_Display_Statistics();
+			}
 			break;
 		}
 	} // switch
