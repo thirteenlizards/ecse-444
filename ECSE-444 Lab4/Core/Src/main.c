@@ -46,6 +46,7 @@
 #include "stm32l4xx_it.h"
 #include "stdio.h"
 #include "string.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,11 +95,11 @@
 /* USER CODE BEGIN PV */
 
 // Create data structure to store sensor data
-char uartBuffer[100];
+char uartBuffer[256];
 float tempSample, pressureSample;
 int16_t magSample[3], accelSample[3];
 volatile uint8_t sensorState;
-enum {Temperature, Pressure, Magneto, Accelero, Statistics};
+enum {Temperature, Pressure, Magneto, Accelero, Statistics, StateCount};
 
 // Create data structure to store samples from sensor
 float tempData[NUM_SAMPLES];
@@ -107,13 +108,16 @@ int16_t magData[NUM_SAMPLES][3];
 int16_t accelData[NUM_SAMPLES][3];
 
 // Counter for number of samples taken from each sensor
-uint16_t sampleCount[NUM_SENSORS] = {0};
+uint16_t sampleCount[StateCount] = {0};
 
 // Create data structure to store sensor data read from flash
 float tempDataFlashRead[NUM_SAMPLES];
 float pressureDataFlashRead[NUM_SAMPLES];
 int16_t magDataFlashRead[NUM_SAMPLES][3];
 int16_t accelDataFlashRead[NUM_SAMPLES][3];
+
+// Print sensors flag
+volatile bool printDataFlag = 0;
 
 
 
@@ -215,17 +219,17 @@ void Read_Sensor(){
 
 	// Increment sampleCount at polled sensor index
     	// originially had seperate indices because took samples at different times adn now don't
-	sampleCount[0]++;
-	sampleCount[1]++;
-	sampleCount[2]++;
+    for (uint8_t i = 0; i < NUM_SENSORS; i++) {
+    	sampleCount[i]++;
+    }
 
 	// If filled, reset buffer back to 0 and next iteration will start overwriting
-	if (sampleCount[sensorState] > (NUM_SAMPLES - 1)) {
+	if (sampleCount[1] > (NUM_SAMPLES - 1)) {
 
 		// reset iterations back to 0
-		sampleCount[0] = 0;
-		sampleCount[1] = 0;
-		sampleCount[2] = 0;
+	    for (uint8_t i = 0; i < NUM_SENSORS; i++) {
+	    	sampleCount[i] = 0;
+	    }
 
 		// save sensor data to flash
 		Sensors_Write_to_Flash();
@@ -270,6 +274,8 @@ void Uart_Display_Statistics(){
 	float magDataVariance[3] = {0};
 	float accelDataVariance[3] = {0};
 
+	float diff[3] = {0};
+
 
 	// Calculate the sum
 	for (uint8_t i = 0; i < NUM_SAMPLES; i++) {
@@ -300,14 +306,35 @@ void Uart_Display_Statistics(){
 		// variance = ((x[0] - x') * (x[0] - x') + (x[1] - x') * (x[1] - x') + ... + * (x[n-1] - x') * (x[n-1] - x')) / (N)
 
 	for (uint8_t i = 0; i < NUM_SAMPLES; i++) {
-		tempDataVariance = tempDataFlashRead[i] - tempDataMean;
-		pressureDataVariance = pressureDataFlashRead[i] - pressureDataMean;
+
+		diff[1] = tempDataFlashRead[i] - tempDataMean;
+		tempDataVariance += diff[1]*diff[1];
+
+		diff[1] = pressureDataFlashRead[i] - pressureDataMean;
+		pressureDataVariance += diff[1]*diff[1];
 
 		for (uint8_t j = 0; j < 3; j++) {
-			magDataVariance[j] = (float)magDataFlashRead[i][j] - magDataMean[j];
-			accelDataVariance[j] = (float)accelDataFlashRead[i][j] - accelDataMean[j];
+
+			diff[j] = (float)magDataFlashRead[i][j] - magDataMean[j];
+			magDataVariance[j] += diff[j]*diff[j];
+
+			diff[j] = (float)accelDataFlashRead[i][j] - accelDataMean[j];
+			accelDataVariance[j] += diff[j]*diff[j];
+
 		} // for j
 	} // for i
+
+
+	tempDataVariance = tempDataVariance / (float)(NUM_SAMPLES);
+	pressureDataVariance = pressureDataVariance / (float)(NUM_SAMPLES);
+
+	for (uint8_t j = 0; j < 3; j++) {
+
+		magDataVariance[j] = magDataVariance[j]/(float)(NUM_SAMPLES);
+
+		accelDataVariance[j] = accelDataVariance[j]/(float)(NUM_SAMPLES);
+
+	} // for j
 
 
 	// Display statistics
@@ -315,30 +342,34 @@ void Uart_Display_Statistics(){
 	//number of samples, sample mean, and sample variance
 
 		// display number of samples
-	uint8_t len = snprintf(uartBuffer, sizeof(uartBuffer), "NUMBER OF SAMPLES: %d/r/n/n", (uint8_t)NUM_SAMPLES);
+	uint8_t len = snprintf(uartBuffer, sizeof(uartBuffer), "\nNUMBER OF SAMPLES: %d\r\n\n", (uint8_t)NUM_SAMPLES);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
 
 		// display sample mean
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE MEAN: %f/r/n", tempDataMean);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "MEANS:\r\n");
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE MEAN: %f/r/n", pressureDataMean);
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Temperature Mean: %f\r\n", tempDataMean);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "MAGNETO MEAN: X: %f, Y: %f, Z: %f\r\n",
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Pressure Mean: %f\r\n", pressureDataMean);
+	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
+
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Magneto Mean: X: %f, Y: %f, Z: %f\r\n",
 			magDataMean[0], magDataMean[1], magDataMean[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "ACCEL MEAN: X: %f, Y: %f, Z: %f\r\n\n",
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "Accel Mean: X: %f, Y: %f, Z: %f\r\n\n",
 			accelDataMean[0], accelDataMean[1], accelDataMean[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
 		// display sample variance
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE VARIANCE: %f/r/n", tempDataVariance);
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "TEMPERATURE VARIANCE: %f\r\n", tempDataVariance);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
-	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE VARIANCE: %f/r/n", pressureDataVariance);
+	len = snprintf(uartBuffer, sizeof(uartBuffer), "PRESSURE VARIANCE: %f\r\n", pressureDataVariance);
 	HAL_UART_Transmit(&huart1, (uint8_t *)uartBuffer, len, 100);
 
 	len = snprintf(uartBuffer, sizeof(uartBuffer), "MAGNETO VARIANCE: X: %f, Y: %f, Z: %f\r\n",
@@ -412,7 +443,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == BUTTON_PIN) {
 
 		// toggle to next sensor or stats
-		sensorState = (sensorState + 1) % 5;
+		sensorState = (sensorState + 1) % StateCount;
 #if Part == PART_3
 		// REMOVED TO MAKE READ_SENSOR BE CONSTANTLY HAPPENING
 		// if sensor state isn't asking for statistics, don't display
@@ -423,7 +454,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 #endif
 
 		// write sensor data to uart
-		Uart_Print_Sensor();
+		printDataFlag = true;
 	} // if
 
 } //  HAL_GPIO_EXTI_Callback
@@ -634,6 +665,14 @@ int main(void)
 
 	  // get data from all the sensors
 	    Read_Sensor();
+	    HAL_Delay(1); // dleay 1ms
+
+	    if (printDataFlag) {
+	    	printDataFlag = false;
+	    	Uart_Print_Sensor();
+	    }
+
+
 
 #if Part == PART_3
 	    // when arrays are filled (all at the same time, so doesn't matter which sensorState)
