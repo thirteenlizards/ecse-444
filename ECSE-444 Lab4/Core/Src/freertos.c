@@ -145,11 +145,6 @@ void StartDefaultTask(void const * argument)
 
 	    Read_Sensor();
 
-	    osMutexWait(stateMutexHandle, osWaitForever);
-	    SensorState currentState = sensorState;
-	    osMutexRelease(stateMutexHandle);
-
-	    Uart_Print_Sensor_State(currentState);  // always print every 100ms
 	  }
   /* USER CODE END StartDefaultTask */
 }
@@ -167,7 +162,12 @@ void StartUartTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(100);
+    osMutexWait(stateMutexHandle, osWaitForever);
+    SensorState currentState = sensorState;
+    osMutexRelease(stateMutexHandle);
+
+    Uart_Print_Sensor_State(currentState);  // always print every 100ms
   }
   /* USER CODE END StartUartTask */
 }

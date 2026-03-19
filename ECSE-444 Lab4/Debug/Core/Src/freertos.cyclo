@@ -1,5 +1,5 @@
 ../Core/Src/freertos.c:76:6:vApplicationGetIdleTaskMemory	1
 ../Core/Src/freertos.c:90:6:MX_FREERTOS_Init	1
 ../Core/Src/freertos.c:138:6:StartDefaultTask	1
-../Core/Src/freertos.c:164:6:StartUartTask	1
+../Core/Src/freertos.c:159:6:StartUartTask	1
 ../Core/Src/freertos.c:182:6:StartButtonTask	3
