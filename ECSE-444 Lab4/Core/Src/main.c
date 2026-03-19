@@ -27,6 +27,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "i2c.h"
 #include "octospi.h"
 #include "usart.h"
@@ -46,7 +47,6 @@
 #include "stm32l4xx_it.h"
 #include "stdio.h"
 #include "string.h"
-#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,6 +65,8 @@
 #define PART_35 5
 #define PART_4 4
 
+/*
+ * MOVED TO MAIN.H
 // Pin Defines
 #define BUTTON_PIN GPIO_PIN_13
 #define BUTTON_PORT GPIOC
@@ -81,7 +83,7 @@
 #define PRESSURE_FLASH_ADDR  	0x001000
 #define MAG_FLASH_ADDR			0x002000
 #define ACCEL_FLASH_ADDR		0x003000
-
+*/
 
 /* USER CODE END PD */
 
@@ -99,7 +101,7 @@ char uartBuffer[256];
 float tempSample, pressureSample;
 int16_t magSample[3], accelSample[3];
 volatile uint8_t sensorState;
-enum {Temperature, Pressure, Magneto, Accelero, Statistics, StateCount};
+// enum {Temperature, Pressure, Magneto, Accelero, Statistics, StateCount};// moved to main.h
 
 // Create data structure to store samples from sensor
 float tempData[NUM_SAMPLES];
@@ -125,9 +127,13 @@ volatile bool printDataFlag = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-void Sensors_Read_from_Flash();
+void Read_Sensor();
+void Uart_Display_Statistics();
+void Uart_Print_Sensor();
 void Sensors_Write_to_Flash();
+void Sensors_Read_from_Flash();
 
 /* USER CODE END PFP */
 
@@ -619,6 +625,14 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -665,7 +679,7 @@ int main(void)
 #endif
 */
 // Check data data can be r/w from flash
-
+#if PART == PART_35
 	  // get data from all the sensors
 	    Read_Sensor();
 	    HAL_Delay(1); // dleay 1ms
@@ -674,6 +688,7 @@ int main(void)
 	    	printDataFlag = false;
 	    	Uart_Print_Sensor();
 	    }
+#endif
 
 
 
