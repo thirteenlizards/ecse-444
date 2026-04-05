@@ -35,6 +35,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UART_RX_TIMEOUT 100
+#define UART_TX_TIMEOUT 100
+#define UART_RX_BUFFER_SIZE 128
+#define UART_TX_BUFFER_SIZE 128
 
 /* USER CODE END PD */
 
@@ -46,6 +50,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+char uartRxBuffer[(uint8_t)UART_RX_BUFFER_SIZE]; // UART RX Buffer
+char uartTxBuffer[(uint8_t)UART_TX_BUFFER_SIZE]; // UART RX Buffer
 
 /* USER CODE END PV */
 
@@ -100,6 +106,22 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  // Receive UART transmission
+	  HAL_UART_Receive(
+			  &huart1, 					  	// specified UART module.
+			  (uint8_t *)uartRxBuffer,      // pointer to data buffer
+			  sizeof(uartRxBuffer),    	   	// amount of data elements
+			  (uint32_t)UART_RX_TIMEOUT);   // timeout duration
+
+	  // Send back UART transmission
+	  HAL_UART_Transmit(
+			  &huart1,						// specified UART module.
+			  (uint8_t *)uartRxBuffer,		// pointer to RX data buffer
+			  sizeof(uartRxBuffer),			// amount of data elements
+			  (uint32_t)UART_TX_TIMEOUT);   // timeout duration
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
