@@ -25,11 +25,36 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+// States of UART processing
+typedef enum {
+	Waiting,
+	Receiving,
+}UartState;
+
+// Data structure to store incoming UART data
+typedef struct {
+	union {
+		float wrench[6]; // wrench can be accessed as array or by name, i.e.
+		struct {
+			float force_x;  // WrenchPacket.force_x
+			float force_y;
+			float force_z;
+			float torque_x;
+			float torque_y;
+			float torque_z;
+		};
+	};
+
+	bool  isValid;			// WrenchPacket.isValid
+}WrenchPacket;
 
 /* USER CODE END PTD */
 
@@ -39,6 +64,7 @@
 #define UART_TX_TIMEOUT 100
 #define UART_RX_BUFFER_SIZE 128
 #define UART_TX_BUFFER_SIZE 128
+#define WRENCH_SIZE 6
 
 /* USER CODE END PD */
 
@@ -52,12 +78,17 @@
 /* USER CODE BEGIN PV */
 char uartRxBuffer[(uint8_t)UART_RX_BUFFER_SIZE]; // UART RX Buffer
 char uartTxBuffer[(uint8_t)UART_TX_BUFFER_SIZE]; // UART RX Buffer
+uint8_t uartByte; // single byte of received UART data
+WrenchPacket wrenchPacket = {0}; // instance of wrench data
+uint8_t byte = 0; // single UART byte
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+WrenchPacket UART_Parse_Wrench(uint8_t byte);
+void Test_Uart_Processing();
 
 /* USER CODE END PFP */
 
@@ -106,21 +137,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  // Receive UART transmission
-	  HAL_UART_Receive(
-			  &huart1, 					  	// specified UART module.
-			  (uint8_t *)uartRxBuffer,      // pointer to data buffer
-			  sizeof(uartRxBuffer),    	   	// amount of data elements
-			  (uint32_t)UART_RX_TIMEOUT);   // timeout duration
-
-	  // Send back UART transmission
-	  HAL_UART_Transmit(
-			  &huart1,						// specified UART module.
-			  (uint8_t *)uartRxBuffer,		// pointer to RX data buffer
-			  sizeof(uartRxBuffer),			// amount of data elements
-			  (uint32_t)UART_TX_TIMEOUT);   // timeout duration
-
+	  // UART write-back to test parsing of input strings
+	  Test_Uart_Processing();
 
     /* USER CODE END WHILE */
 
@@ -180,6 +198,108 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// User Functions
+
+
+void Test_Uart_Processing() {
+	  // If byte received:
+	  if (HAL_UART_Receive(&huart1, &byte, sizeof(byte), (uint32_t)UART_RX_TIMEOUT)
+		  == HAL_OK)
+	  {
+		  wrenchPacket = UART_Parse_Wrench(byte);
+
+		  if (wrenchPacket.isValid) {
+
+
+
+			  // Send back UART transmission
+				uint8_t len = snprintf(uartTxBuffer, sizeof(uartTxBuffer), "%f, %f, %f, %f, %f, %f\r\n",
+						wrenchPacket.force_x, wrenchPacket.force_y,
+						wrenchPacket.force_z, wrenchPacket.torque_x,
+						wrenchPacket.torque_y, wrenchPacket.torque_z);
+
+
+
+			  HAL_UART_Transmit(
+					  &huart1,						// specified UART module.
+					  (uint8_t *)uartTxBuffer,		// pointer to RX data buffer
+					  len,			// amount of data elements
+					  (uint32_t)UART_TX_TIMEOUT);   // timeout duration
+		  } // isValid
+
+	  } // HAL_OK
+}
+
+
+/**
+ * State machine to manage wrench packets over UART, call repeatedly to
+ * process next byte.
+ * @param byte 		next byte from uart
+ * @return 			UART_Parse_Wrench struct (6 vals + flag)
+ */
+WrenchPacket UART_Parse_Wrench(uint8_t byte) {
+
+	// Assume that incoming packets are in the format:
+	// <force_x, force_y, force_z, torque_x, torque_y, torque_z>
+
+	// Initialize state variable, set to Waiting in first iteration
+	static UartState uartState = Waiting;
+
+	// Increment up to WRENCH_SIZE = 6, set to 0 in first iteration
+	static uint8_t wrenchIdx = 0;
+
+	// Initialize wrenchPacket to 0 every time, this sets the isValid flag to FALSE
+	WrenchPacket wrench = {0};
+
+	switch(uartState) {
+
+	case(Waiting):
+			if (byte == '<') { // packet is starting
+				uartState = Receiving; // set state
+				wrenchIdx = 0;		   // set index
+				memset(uartRxBuffer, 0, sizeof(uartRxBuffer)); // clear buffer
+			} // if
+
+			break;
+
+	case(Receiving):
+		if (byte == '>') { // packet is ending
+
+			// End buffer location with null character
+			uartRxBuffer[wrenchIdx] = '\0';
+
+			// Parse the wrench values
+			uint8_t numValues = sscanf(uartRxBuffer, "%f, %f, %f, %f, %f, %f",
+					&wrench.force_x, &wrench.force_y,
+					&wrench.force_z, &wrench.torque_x,
+					&wrench.torque_y, &wrench.torque_z);
+
+			if (numValues == (uint8_t)WRENCH_SIZE) {
+				wrench.isValid = true;
+			} // if
+
+			// Return state to waiting
+			uartState = Waiting;
+
+		} // if
+
+		else { // just a regular data byte
+			if (wrenchIdx < (sizeof(uartRxBuffer)-1)) { // make sure didn't get fucked up packet
+				uartRxBuffer[wrenchIdx++] = byte;
+			}
+			else { // packet was too long, you silly goose. you're so silly
+				uartState = Waiting; // get kicked out. idiot.
+			}
+		} // else
+
+			break;
+
+		} // switch
+
+	return(wrench);
+} // WrenchPacket UART_Parse_Wrench(uint8_t byte)
+
 
 /* USER CODE END 4 */
 
