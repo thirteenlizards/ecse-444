@@ -34,8 +34,14 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
  ../Core/Inc/i2c.h ../Core/Inc/main.h ../Core/Inc/octospi.h \
- ../Core/Inc/usart.h ../Core/Inc/gpio.h ../Core/Inc/arm_math.h \
- ../Drivers/CMSIS/Include/cmsis_compiler.h
+ ../Core/Inc/tim.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
+ ../Core/Inc/arm_math.h ../Drivers/CMSIS/Include/cmsis_compiler.h \
+ ../Core/Inc/stm32l4s5i_iot01_qspi.h \
+ ../Core/Inc/../Components/mx25r6435f/mx25r6435f.h \
+ ../Core/Inc/stm32l4s5i_iot01_tsensor.h ../Core/Inc/stm32l4s5i_iot01.h \
+ ../Core/Inc/../Components/hts221/hts221.h \
+ ../Core/Inc/../Components/hts221/../Common/hsensor.h \
+ ../Core/Inc/../Components/hts221/../Common/tsensor.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -74,7 +80,15 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/i2c.h:
 ../Core/Inc/main.h:
 ../Core/Inc/octospi.h:
+../Core/Inc/tim.h:
 ../Core/Inc/usart.h:
 ../Core/Inc/gpio.h:
 ../Core/Inc/arm_math.h:
 ../Drivers/CMSIS/Include/cmsis_compiler.h:
+../Core/Inc/stm32l4s5i_iot01_qspi.h:
+../Core/Inc/../Components/mx25r6435f/mx25r6435f.h:
+../Core/Inc/stm32l4s5i_iot01_tsensor.h:
+../Core/Inc/stm32l4s5i_iot01.h:
+../Core/Inc/../Components/hts221/hts221.h:
+../Core/Inc/../Components/hts221/../Common/hsensor.h:
+../Core/Inc/../Components/hts221/../Common/tsensor.h:

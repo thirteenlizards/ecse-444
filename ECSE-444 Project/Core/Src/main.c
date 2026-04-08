@@ -31,6 +31,9 @@
 #include <stdbool.h>
 #define ARM_MATH_CM4
 #include "arm_math.h"
+
+#include "stm32l4s5i_iot01_qspi.h"
+#include "stm32l4s5i_iot01_tsensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +51,21 @@ typedef struct {
     };
     bool isValid;
 } WrenchPacket;
+
+#define NUM_SAMPLES 3
+#define FLOAT_SIZE sizeof(float)
+#define SAMPLE_SIZE 32
+#define BASE_ADDRESS 0x00000000
+
+uint32_t sampleCounter = 0;
+uint8_t writeBuffer[SAMPLE_SIZE];
+uint8_t readBuffer[SAMPLE_SIZE];
+int actualNumberSamples = 0;
+
+
+float temperature = -1.0;
+float voltage1 = -1.0;
+float voltage2 = -1.0;
 
 /* USER CODE END PTD */
 
@@ -158,9 +176,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   ThrustMapper_Init();
+  BSP_TSENSOR_Init();
 
   // Start Timer 4, Channel 3 (PWM)
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+
+  if (BSP_QSPI_Init() != QSPI_OK) {
+	  Error_Handler();
+	}
+
+	if (BSP_QSPI_Erase_Block(BASE_ADDRESS) != QSPI_OK) {
+	  Error_Handler();
+	}
 
   /* USER CODE END 2 */
 
@@ -170,6 +197,8 @@ int main(void)
   {
 	  // UART write-back to test parsing of input strings
 	  Test_Uart_Processing();
+
+	  //temperature = BSP_TSENSOR_ReadTemp();
 
     /* USER CODE END WHILE */
 
@@ -317,20 +346,92 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
  */
 
 void Test_Uart_Processing(void) {
+    static char line[128];
+    static uint8_t idx = 0;
+
     if (HAL_UART_Receive(&huart1, &byte, 1, UART_RX_TIMEOUT) == HAL_OK) {
-        wrenchPacket = UART_Parse_Wrench(byte);
-        if (wrenchPacket.isValid) {
-            uint16_t pwm[NUM_THRUSTERS];
-            Compute_PWM_From_Wrench(&wrenchPacket, pwm);
 
-            uint8_t len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-                "W:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] PWM:[%u,%u,%u,%u,%u,%u,%u,%u]\r\n",
-                wrenchPacket.force_x,  wrenchPacket.force_y,  wrenchPacket.force_z,
-                wrenchPacket.torque_x, wrenchPacket.torque_y, wrenchPacket.torque_z,
-                pwm[0], pwm[1], pwm[2], pwm[3],
-                pwm[4], pwm[5], pwm[6], pwm[7]);
+        if (byte == '\r' || byte == '\n') {
+            line[idx] = '\0';  // terminate string
 
-            HAL_UART_Transmit(&huart1, (uint8_t *)uartTxBuffer, len, UART_TX_TIMEOUT);
+            // -------- COMMAND PARSING --------
+
+            // 1. Voltage command: v, 16.8, 14.5
+            if (line[0] == 'v') {
+                float v1, v2;
+
+                if (sscanf(line, "v, %f, %f", &v1, &v2) == 2) {
+                    voltage1 = v1;
+                    voltage2 = v2;
+
+                    temperature = BSP_TSENSOR_ReadTemp();
+
+                    writeData();  // store in QSPI
+
+                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+                        "Stored -> T: %.2f V1: %.2f V2: %.2f\r\n",
+                        temperature, voltage1, voltage2);
+
+                    HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+                }
+            }
+
+            // 2. Telemetry command: t
+            else if (line[0] == 't') {
+
+                for (int i = 0; i < actualNumberSamples; i++) {
+
+                    int index = (sampleCounter - 1 - i + NUM_SAMPLES) % NUM_SAMPLES;
+
+                    readData(index);
+
+                    float t, v1, v2;
+                    memcpy(&t,  &readBuffer[0], FLOAT_SIZE);
+                    memcpy(&v1, &readBuffer[FLOAT_SIZE], FLOAT_SIZE);
+                    memcpy(&v2, &readBuffer[2 * FLOAT_SIZE], FLOAT_SIZE);
+
+                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+                        "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
+                        i, t, v1, v2);
+
+                    HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+                }
+            }
+
+            // 3. Force command: f, 1, 1, 3, 2, 1, 6
+            else if (line[0] == 'f') {
+                WrenchPacket wp = {0};
+
+                if (sscanf(line, "f, %f, %f, %f, %f, %f, %f",
+                    &wp.force_x, &wp.force_y, &wp.force_z,
+                    &wp.torque_x, &wp.torque_y, &wp.torque_z) == 6) {
+
+                    wp.isValid = true;
+
+                    uint16_t pwm[NUM_THRUSTERS];
+                    Compute_PWM_From_Wrench(&wp, pwm);
+
+                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+                        "PWM:[%u,%u,%u,%u,%u,%u,%u,%u]\r\n",
+                        pwm[0], pwm[1], pwm[2], pwm[3],
+                        pwm[4], pwm[5], pwm[6], pwm[7]);
+
+                    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm[0]);
+
+                    HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+                }
+            }
+
+            // reset buffer
+            idx = 0;
+        }
+        else {
+            if (idx < sizeof(line) - 1) {
+                line[idx++] = byte;
+            }
+            else {
+                idx = 0; // overflow protection
+            }
         }
     }
 }
@@ -404,6 +505,39 @@ WrenchPacket UART_Parse_Wrench(uint8_t byte) {
 	return(wrench);
 } // WrenchPacket UART_Parse_Wrench(uint8_t byte)
 
+void writeData() {
+    uint32_t writeIndex = sampleCounter % NUM_SAMPLES;
+    uint32_t writeAddress = BASE_ADDRESS + writeIndex * SAMPLE_SIZE;
+
+    if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
+        Error_Handler();
+    }
+
+    memset(writeBuffer, 0, SAMPLE_SIZE);
+
+    memcpy(&writeBuffer[0], &temperature, FLOAT_SIZE);
+    memcpy(&writeBuffer[FLOAT_SIZE], &voltage1, FLOAT_SIZE);
+    memcpy(&writeBuffer[2 * FLOAT_SIZE], &voltage2, FLOAT_SIZE);
+
+    if (BSP_QSPI_Write(writeBuffer, writeAddress, SAMPLE_SIZE) != QSPI_OK) {
+        Error_Handler();
+    }
+
+    sampleCounter++;
+
+    if (actualNumberSamples < NUM_SAMPLES) {
+        actualNumberSamples++;
+    }
+}
+
+
+void readData(uint32_t sample_number) {
+    uint32_t readAddress = BASE_ADDRESS + (sample_number % NUM_SAMPLES) * SAMPLE_SIZE;
+
+    if (BSP_QSPI_Read(readBuffer, readAddress, SAMPLE_SIZE) != QSPI_OK) {
+        Error_Handler();
+    }
+}
 
 /* USER CODE END 4 */
 
