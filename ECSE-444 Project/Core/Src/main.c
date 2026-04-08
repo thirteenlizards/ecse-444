@@ -20,6 +20,7 @@
 #include "main.h"
 #include "i2c.h"
 #include "octospi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -129,7 +130,11 @@ int main(void)
   MX_OCTOSPI1_Init();
   MX_I2C2_Init();
   MX_USART1_UART_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+
+  // Start Timer 4, Channel 3
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
 
   /* USER CODE END 2 */
 
@@ -138,7 +143,21 @@ int main(void)
   while (1)
   {
 	  // UART write-back to test parsing of input strings
-	  Test_Uart_Processing();
+	  //Test_Uart_Processing();
+
+	  // Test sending a PWM Pulse
+
+	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1500);
+	  HAL_Delay(3000);
+
+	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1800);
+	  HAL_Delay(3000);
+
+	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1300);
+	  HAL_Delay(3000);
+
+
+
 
     /* USER CODE END WHILE */
 
