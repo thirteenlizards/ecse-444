@@ -61,7 +61,7 @@ main-build: ECSE_444_Project.elf secondary-outputs
 
 # Tool invocations
 ECSE_444_Project.elf ECSE_444_Project.map: $(OBJS) $(USER_OBJS) C:\Users\yauho\Documents\ecse-444\ECSE-444\ Project\STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ECSE_444_Project.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\yauho\Documents\ecse-444\ECSE-444 Project\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECSE_444_Project.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "ECSE_444_Project.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\yauho\Documents\ecse-444\ECSE-444 Project\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECSE_444_Project.map" -Wl,--gc-sections -static -L../Core/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
