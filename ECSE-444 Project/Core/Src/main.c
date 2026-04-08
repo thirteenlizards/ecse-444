@@ -20,6 +20,7 @@
 #include "main.h"
 #include "i2c.h"
 #include "octospi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -153,8 +154,14 @@ int main(void)
   MX_OCTOSPI1_Init();
   MX_I2C2_Init();
   MX_USART1_UART_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+
   ThrustMapper_Init();
+
+  // Start Timer 4, Channel 3 (PWM)
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -301,6 +308,13 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
         pwm_out[i] = (uint16_t)pwm_f;
     }
 }
+
+/**
+ * UART Writeback to test UART functionning
+ * process next byte.
+ * @param byte 		next byte from uart
+ * @return 			whatever u want!
+ */
 
 void Test_Uart_Processing(void) {
     if (HAL_UART_Receive(&huart1, &byte, 1, UART_RX_TIMEOUT) == HAL_OK) {
