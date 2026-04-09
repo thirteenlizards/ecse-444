@@ -85,6 +85,7 @@ uint16_t sampleCount = {0};
 float tempDataFlashRead[NUM_SAMPLES];
 float voltage1DataFlashRead[NUM_SAMPLES];
 float voltage2DataFlashRead[NUM_SAMPLES];
+bool writeOnce = false;
 
 
 float temperature = -1.0;
@@ -408,6 +409,7 @@ void Uart_Processing(void) {
                     	// store in QSPI
                     	//writeData();
                     	Sensors_Write_to_Flash();
+                    	writeOnce = true; // to ensure bad flash is not read from
                     	sampleCount = 0;
                     }
 
@@ -424,17 +426,31 @@ void Uart_Processing(void) {
             // 2. Telemetry command: t
             else if (line[0] == 't') {
 
-            	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
-            	Sensors_Read_from_Flash();
+            	if (writeOnce) { // make sure no flash read unless data has been written at least once
 
-                for (int i = 0; i < (NUM_SAMPLES); i++) {
+					// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
+					Sensors_Read_from_Flash();
 
-                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-                        "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
-                        i, tempDataFlashRead[i], voltage1DataFlashRead[i], voltage2DataFlashRead[i]);
+					for (int i = 0; i < (NUM_SAMPLES); i++) {
 
-                    HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
-                }
+						int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+							"Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
+							i, tempDataFlashRead[i], voltage1DataFlashRead[i], voltage2DataFlashRead[i]);
+
+						HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+					}
+
+            	}
+
+            	else {
+					int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+						"Not enough samples taken. You have taken %d samples and you need %d.",
+						sampleCount, (uint8_t)NUM_SAMPLES);
+					HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+
+            	}
+
+
             }
 
             // 3. Force command: f, 1, 1, 3, 2, 1, 6
@@ -459,6 +475,15 @@ void Uart_Processing(void) {
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
                 }
+            }
+
+            else {
+
+            	if (idx > 0 || line[0] != '\0') { // don't trigger on empty line
+            		int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+            	                        	"Invalid Command. Valid commands: <f, Fx, Fy, Fz, Tx, Ty, Tz> and <t>\r\n");
+            		HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+            	}
             }
 
             // reset buffer
@@ -635,6 +660,23 @@ void Sensors_Read_from_Flash() {
 	if (BSP_QSPI_Read((uint8_t*)voltage2DataFlashRead, VOLTAGE2_FLASH_ADDR, sizeof(voltage2DataFlashRead)) != QSPI_OK){
 	      Error_Handler();
 	}
+
+}
+
+
+/**
+ * @name System_Status_Check()
+ *
+ * Checks sensor data loaded from flash and decide if to shutdown
+ *
+ * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
+ */
+
+void System_Status_Check() {
+
+	Sensors_Read_from_Flash();
+
+
 
 }
 
