@@ -2752,7 +2752,7 @@ void Uart_Processing(void) {
  8001a4a:	4b7d      	ldr	r3, [pc, #500]	@ (8001c40 <Uart_Processing+0x298>)
  8001a4c:	801a      	strh	r2, [r3, #0]
 
-                    if (sampleCount > (NUM_SAMPLES-1)) {
+                    if (sampleCount >= (NUM_SAMPLES)) {
  8001a4e:	4b7c      	ldr	r3, [pc, #496]	@ (8001c40 <Uart_Processing+0x298>)
  8001a50:	881b      	ldrh	r3, [r3, #0]
  8001a52:	2b04      	cmp	r3, #4
@@ -2817,14 +2817,14 @@ void Uart_Processing(void) {
  8001ab8:	2b74      	cmp	r3, #116	@ 0x74
  8001aba:	d13e      	bne.n	8001b3a <Uart_Processing+0x192>
 
-                for (int i = 0; i < (NUM_SAMPLES - 1); i++) {
- 8001abc:	2300      	movs	r3, #0
- 8001abe:	63fb      	str	r3, [r7, #60]	@ 0x3c
- 8001ac0:	e037      	b.n	8001b32 <Uart_Processing+0x18a>
+            	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
+            	Sensors_Read_from_Flash();
+ 8001abc:	f000 f8fa 	bl	8001cb4 <Sensors_Read_from_Flash>
 
-                	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
-                	Sensors_Read_from_Flash();
- 8001ac2:	f000 f8f7 	bl	8001cb4 <Sensors_Read_from_Flash>
+                for (int i = 0; i < (NUM_SAMPLES); i++) {
+ 8001ac0:	2300      	movs	r3, #0
+ 8001ac2:	63fb      	str	r3, [r7, #60]	@ 0x3c
+ 8001ac4:	e035      	b.n	8001b32 <Uart_Processing+0x18a>
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
@@ -2878,13 +2878,13 @@ void Uart_Processing(void) {
  8001b24:	494c      	ldr	r1, [pc, #304]	@ (8001c58 <Uart_Processing+0x2b0>)
  8001b26:	4840      	ldr	r0, [pc, #256]	@ (8001c28 <Uart_Processing+0x280>)
  8001b28:	f006 fd2a 	bl	8008580 <HAL_UART_Transmit>
-                for (int i = 0; i < (NUM_SAMPLES - 1); i++) {
+                for (int i = 0; i < (NUM_SAMPLES); i++) {
  8001b2c:	6bfb      	ldr	r3, [r7, #60]	@ 0x3c
  8001b2e:	3301      	adds	r3, #1
  8001b30:	63fb      	str	r3, [r7, #60]	@ 0x3c
  8001b32:	6bfb      	ldr	r3, [r7, #60]	@ 0x3c
- 8001b34:	2b03      	cmp	r3, #3
- 8001b36:	ddc4      	ble.n	8001ac2 <Uart_Processing+0x11a>
+ 8001b34:	2b04      	cmp	r3, #4
+ 8001b36:	ddc6      	ble.n	8001ac6 <Uart_Processing+0x11e>
  8001b38:	e057      	b.n	8001bea <Uart_Processing+0x242>
                 }
             }

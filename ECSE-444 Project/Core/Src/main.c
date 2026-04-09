@@ -404,7 +404,7 @@ void Uart_Processing(void) {
                     // Increment the sample counter
                     sampleCount++;
 
-                    if (sampleCount > (NUM_SAMPLES)) {
+                    if (sampleCount >= (NUM_SAMPLES)) {
                     	// store in QSPI
                     	//writeData();
                     	Sensors_Write_to_Flash();
@@ -424,10 +424,10 @@ void Uart_Processing(void) {
             // 2. Telemetry command: t
             else if (line[0] == 't') {
 
-                for (int i = 0; i < (NUM_SAMPLES); i++) {
+            	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
+            	Sensors_Read_from_Flash();
 
-                	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
-                	Sensors_Read_from_Flash();
+                for (int i = 0; i < (NUM_SAMPLES); i++) {
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
