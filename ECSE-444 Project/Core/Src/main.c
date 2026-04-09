@@ -169,6 +169,7 @@ void Sensors_Write_to_Flash();
 void Sensors_Read_from_Flash();
 void System_Status_Check();
 void Sleep_Mode();
+void Bad_Input();
 
 /* USER CODE END PFP */
 
@@ -215,8 +216,9 @@ int main(void)
   ThrustMapper_Init();
   BSP_TSENSOR_Init();
 
-  // Start Timer 4, Channel 3 (PWM)
+  // Start Timer 4, Channel 3 (PWM) and set to 1500
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1500);  // set thruster output to 0
 
   if (BSP_QSPI_Init() != QSPI_OK) {
 	  Error_Handler();
@@ -440,10 +442,13 @@ void Uart_Processing(void) {
 
                     if ((voltage1Sample < 10) || (voltage2Sample < 10)) {
 						int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-									"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
+									"Battery voltage too low. Entering sleep mode now.\n");
 								HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
 								Sleep_Mode();
                     }
+                }
+                else{
+                	Bad_Input();
                 }
             }
 
@@ -498,6 +503,9 @@ void Uart_Processing(void) {
                     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm[0]);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+                }
+                else {
+                	Bad_Input();
                 }
             }
 
@@ -713,7 +721,7 @@ void System_Status_Check() {
 
 		//if (avgTemp > (float)MAX_TEMP) {
 		int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-					"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
+					"Battery voltage too low, entering sleep mode.\n");
 				HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
 				Sleep_Mode();
 				//HAL_SuspendTick();
@@ -728,6 +736,7 @@ void System_Status_Check() {
 
 // Enter Sleep Mode
 void Sleep_Mode() {
+	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1500);  // set thruster output to 0
 	HAL_SuspendTick();
 	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
@@ -746,6 +755,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             "ON THE FOURTH DAY GOD HAS RISEN... GOD IS ME");
         HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
     }
+}
+
+// bad input
+void Bad_Input() {
+	int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+                        	"Invalid Command. Valid commands: <f, Fx, Fy, Fz, Tx, Ty, Tz> and <t>\r\n");
+	HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
 }
 
 /* USER CODE END 4 */
