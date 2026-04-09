@@ -27,29 +27,29 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  000111f0  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00025ffc  00000000  00000000  00011220  2**0
+ 12 .debug_info   00025fd8  00000000  00000000  00011220  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00004e4a  00000000  00000000  0003721c  2**0
+ 13 .debug_abbrev 00004e1a  00000000  00000000  000371f8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 000018d0  00000000  00000000  0003c068  2**3
+ 14 .debug_aranges 000018d0  00000000  00000000  0003c018  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 000012a4  00000000  00000000  0003d938  2**0
+ 15 .debug_rnglists 000012a4  00000000  00000000  0003d8e8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0002d7dc  00000000  00000000  0003ebdc  2**0
+ 16 .debug_macro  0002d7dc  00000000  00000000  0003eb8c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00020240  00000000  00000000  0006c3b8  2**0
+ 17 .debug_line   00020240  00000000  00000000  0006c368  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0011c89e  00000000  00000000  0008c5f8  2**0
+ 18 .debug_str    0011c89f  00000000  00000000  0008c5a8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      000000b8  00000000  00000000  001a8e96  2**0
+ 19 .comment      000000b8  00000000  00000000  001a8e47  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00007d04  00000000  00000000  001a8f50  2**2
+ 20 .debug_frame  00007d04  00000000  00000000  001a8f00  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000061  00000000  00000000  001b0c54  2**0
+ 21 .debug_line_str 00000067  00000000  00000000  001b0c04  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_loc    00001325  00000000  00000000  001b0cb5  2**0
+ 22 .debug_loc    00001325  00000000  00000000  001b0c6b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 23 .debug_ranges 00000060  00000000  00000000  001b1fda  2**0
+ 23 .debug_ranges 00000060  00000000  00000000  001b1f90  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1995,8 +1995,8 @@ int main(void)
   while (1)
   {
 	  // UART write-back to test parsing of input strings
-	  Test_Uart_Processing();
- 800144a:	f000 faa1 	bl	8001990 <Test_Uart_Processing>
+	  Uart_Processing();
+ 800144a:	f000 faa1 	bl	8001990 <Uart_Processing>
  800144e:	e7fc      	b.n	800144a <main+0x4e>
  8001450:	200009e0 	.word	0x200009e0
 
@@ -2630,13 +2630,13 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
  8001988:	44998000 	.word	0x44998000
  800198c:	44998000 	.word	0x44998000
 
-08001990 <Test_Uart_Processing>:
+08001990 <Uart_Processing>:
  * process next byte.
  * @param byte 		next byte from uart
  * @return 			whatever u want!
  */
 
-void Test_Uart_Processing(void) {
+void Uart_Processing(void) {
  8001990:	e92d 43f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, lr}
  8001994:	b09f      	sub	sp, #124	@ 0x7c
  8001996:	af08      	add	r7, sp, #32
@@ -2646,27 +2646,27 @@ void Test_Uart_Processing(void) {
     if (HAL_UART_Receive(&huart1, &byte, 1, UART_RX_TIMEOUT) == HAL_OK) {
  8001998:	2364      	movs	r3, #100	@ 0x64
  800199a:	2201      	movs	r2, #1
- 800199c:	4992      	ldr	r1, [pc, #584]	@ (8001be8 <Test_Uart_Processing+0x258>)
- 800199e:	4893      	ldr	r0, [pc, #588]	@ (8001bec <Test_Uart_Processing+0x25c>)
+ 800199c:	4992      	ldr	r1, [pc, #584]	@ (8001be8 <Uart_Processing+0x258>)
+ 800199e:	4893      	ldr	r0, [pc, #588]	@ (8001bec <Uart_Processing+0x25c>)
  80019a0:	f006 fe91 	bl	80086c6 <HAL_UART_Receive>
  80019a4:	4603      	mov	r3, r0
  80019a6:	2b00      	cmp	r3, #0
- 80019a8:	f040 8118 	bne.w	8001bdc <Test_Uart_Processing+0x24c>
+ 80019a8:	f040 8119 	bne.w	8001bde <Uart_Processing+0x24e>
 
         if (byte == '\r' || byte == '\n') {
- 80019ac:	4b8e      	ldr	r3, [pc, #568]	@ (8001be8 <Test_Uart_Processing+0x258>)
+ 80019ac:	4b8e      	ldr	r3, [pc, #568]	@ (8001be8 <Uart_Processing+0x258>)
  80019ae:	781b      	ldrb	r3, [r3, #0]
  80019b0:	2b0d      	cmp	r3, #13
- 80019b2:	d004      	beq.n	80019be <Test_Uart_Processing+0x2e>
- 80019b4:	4b8c      	ldr	r3, [pc, #560]	@ (8001be8 <Test_Uart_Processing+0x258>)
+ 80019b2:	d004      	beq.n	80019be <Uart_Processing+0x2e>
+ 80019b4:	4b8c      	ldr	r3, [pc, #560]	@ (8001be8 <Uart_Processing+0x258>)
  80019b6:	781b      	ldrb	r3, [r3, #0]
  80019b8:	2b0a      	cmp	r3, #10
- 80019ba:	f040 80fc 	bne.w	8001bb6 <Test_Uart_Processing+0x226>
+ 80019ba:	f040 80fd 	bne.w	8001bb8 <Uart_Processing+0x228>
             line[idx] = '\0';  // terminate string
- 80019be:	4b8c      	ldr	r3, [pc, #560]	@ (8001bf0 <Test_Uart_Processing+0x260>)
+ 80019be:	4b8c      	ldr	r3, [pc, #560]	@ (8001bf0 <Uart_Processing+0x260>)
  80019c0:	781b      	ldrb	r3, [r3, #0]
  80019c2:	461a      	mov	r2, r3
- 80019c4:	4b8b      	ldr	r3, [pc, #556]	@ (8001bf4 <Test_Uart_Processing+0x264>)
+ 80019c4:	4b8b      	ldr	r3, [pc, #556]	@ (8001bf4 <Uart_Processing+0x264>)
  80019c6:	2100      	movs	r1, #0
  80019c8:	5499      	strb	r1, [r3, r2]
 
@@ -2674,53 +2674,53 @@ void Test_Uart_Processing(void) {
 
             // 1. Voltage command: v, 16.8, 14.5
             if (line[0] == 'v') {
- 80019ca:	4b8a      	ldr	r3, [pc, #552]	@ (8001bf4 <Test_Uart_Processing+0x264>)
+ 80019ca:	4b8a      	ldr	r3, [pc, #552]	@ (8001bf4 <Uart_Processing+0x264>)
  80019cc:	781b      	ldrb	r3, [r3, #0]
  80019ce:	2b76      	cmp	r3, #118	@ 0x76
- 80019d0:	d144      	bne.n	8001a5c <Test_Uart_Processing+0xcc>
+ 80019d0:	d144      	bne.n	8001a5c <Uart_Processing+0xcc>
                 float v1, v2;
 
                 if (sscanf(line, "v, %f, %f", &v1, &v2) == 2) {
  80019d2:	f107 033c 	add.w	r3, r7, #60	@ 0x3c
  80019d6:	f107 0240 	add.w	r2, r7, #64	@ 0x40
- 80019da:	4987      	ldr	r1, [pc, #540]	@ (8001bf8 <Test_Uart_Processing+0x268>)
- 80019dc:	4885      	ldr	r0, [pc, #532]	@ (8001bf4 <Test_Uart_Processing+0x264>)
+ 80019da:	4987      	ldr	r1, [pc, #540]	@ (8001bf8 <Uart_Processing+0x268>)
+ 80019dc:	4885      	ldr	r0, [pc, #532]	@ (8001bf4 <Uart_Processing+0x264>)
  80019de:	f008 ff75 	bl	800a8cc <siscanf>
  80019e2:	4603      	mov	r3, r0
  80019e4:	2b02      	cmp	r3, #2
- 80019e6:	f040 80e2 	bne.w	8001bae <Test_Uart_Processing+0x21e>
+ 80019e6:	f040 80e3 	bne.w	8001bb0 <Uart_Processing+0x220>
                     voltage1 = v1;
  80019ea:	6c3b      	ldr	r3, [r7, #64]	@ 0x40
- 80019ec:	4a83      	ldr	r2, [pc, #524]	@ (8001bfc <Test_Uart_Processing+0x26c>)
+ 80019ec:	4a83      	ldr	r2, [pc, #524]	@ (8001bfc <Uart_Processing+0x26c>)
  80019ee:	6013      	str	r3, [r2, #0]
                     voltage2 = v2;
  80019f0:	6bfb      	ldr	r3, [r7, #60]	@ 0x3c
- 80019f2:	4a83      	ldr	r2, [pc, #524]	@ (8001c00 <Test_Uart_Processing+0x270>)
+ 80019f2:	4a83      	ldr	r2, [pc, #524]	@ (8001c00 <Uart_Processing+0x270>)
  80019f4:	6013      	str	r3, [r2, #0]
 
                     temperature = BSP_TSENSOR_ReadTemp();
  80019f6:	f001 f843 	bl	8002a80 <BSP_TSENSOR_ReadTemp>
  80019fa:	eef0 7a40 	vmov.f32	s15, s0
- 80019fe:	4b81      	ldr	r3, [pc, #516]	@ (8001c04 <Test_Uart_Processing+0x274>)
+ 80019fe:	4b81      	ldr	r3, [pc, #516]	@ (8001c04 <Uart_Processing+0x274>)
  8001a00:	edc3 7a00 	vstr	s15, [r3]
 
                     writeData();  // store in QSPI
  8001a04:	f000 f914 	bl	8001c30 <writeData>
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
- 8001a08:	4b7e      	ldr	r3, [pc, #504]	@ (8001c04 <Test_Uart_Processing+0x274>)
+ 8001a08:	4b7e      	ldr	r3, [pc, #504]	@ (8001c04 <Uart_Processing+0x274>)
  8001a0a:	681b      	ldr	r3, [r3, #0]
  8001a0c:	4618      	mov	r0, r3
  8001a0e:	f7fe fdb3 	bl	8000578 <__aeabi_f2d>
  8001a12:	4604      	mov	r4, r0
  8001a14:	460d      	mov	r5, r1
- 8001a16:	4b79      	ldr	r3, [pc, #484]	@ (8001bfc <Test_Uart_Processing+0x26c>)
+ 8001a16:	4b79      	ldr	r3, [pc, #484]	@ (8001bfc <Uart_Processing+0x26c>)
  8001a18:	681b      	ldr	r3, [r3, #0]
  8001a1a:	4618      	mov	r0, r3
  8001a1c:	f7fe fdac 	bl	8000578 <__aeabi_f2d>
  8001a20:	4680      	mov	r8, r0
  8001a22:	4689      	mov	r9, r1
- 8001a24:	4b76      	ldr	r3, [pc, #472]	@ (8001c00 <Test_Uart_Processing+0x270>)
+ 8001a24:	4b76      	ldr	r3, [pc, #472]	@ (8001c00 <Uart_Processing+0x270>)
  8001a26:	681b      	ldr	r3, [r3, #0]
  8001a28:	4618      	mov	r0, r3
  8001a2a:	f7fe fda5 	bl	8000578 <__aeabi_f2d>
@@ -2729,9 +2729,9 @@ void Test_Uart_Processing(void) {
  8001a32:	e9cd 2304 	strd	r2, r3, [sp, #16]
  8001a36:	e9cd 8902 	strd	r8, r9, [sp, #8]
  8001a3a:	e9cd 4500 	strd	r4, r5, [sp]
- 8001a3e:	4a72      	ldr	r2, [pc, #456]	@ (8001c08 <Test_Uart_Processing+0x278>)
+ 8001a3e:	4a72      	ldr	r2, [pc, #456]	@ (8001c08 <Uart_Processing+0x278>)
  8001a40:	f44f 7180 	mov.w	r1, #256	@ 0x100
- 8001a44:	4871      	ldr	r0, [pc, #452]	@ (8001c0c <Test_Uart_Processing+0x27c>)
+ 8001a44:	4871      	ldr	r0, [pc, #452]	@ (8001c0c <Uart_Processing+0x27c>)
  8001a46:	f008 fee9 	bl	800a81c <sniprintf>
  8001a4a:	6478      	str	r0, [r7, #68]	@ 0x44
                         "Stored -> T: %.2f V1: %.2f V2: %.2f\r\n",
@@ -2741,32 +2741,32 @@ void Test_Uart_Processing(void) {
  8001a4c:	6c7b      	ldr	r3, [r7, #68]	@ 0x44
  8001a4e:	b29a      	uxth	r2, r3
  8001a50:	2364      	movs	r3, #100	@ 0x64
- 8001a52:	496e      	ldr	r1, [pc, #440]	@ (8001c0c <Test_Uart_Processing+0x27c>)
- 8001a54:	4865      	ldr	r0, [pc, #404]	@ (8001bec <Test_Uart_Processing+0x25c>)
+ 8001a52:	496e      	ldr	r1, [pc, #440]	@ (8001c0c <Uart_Processing+0x27c>)
+ 8001a54:	4865      	ldr	r0, [pc, #404]	@ (8001bec <Uart_Processing+0x25c>)
  8001a56:	f006 fd9d 	bl	8008594 <HAL_UART_Transmit>
- 8001a5a:	e0a8      	b.n	8001bae <Test_Uart_Processing+0x21e>
+ 8001a5a:	e0a9      	b.n	8001bb0 <Uart_Processing+0x220>
                 }
             }
 
             // 2. Telemetry command: t
             else if (line[0] == 't') {
- 8001a5c:	4b65      	ldr	r3, [pc, #404]	@ (8001bf4 <Test_Uart_Processing+0x264>)
+ 8001a5c:	4b65      	ldr	r3, [pc, #404]	@ (8001bf4 <Uart_Processing+0x264>)
  8001a5e:	781b      	ldrb	r3, [r3, #0]
  8001a60:	2b74      	cmp	r3, #116	@ 0x74
- 8001a62:	d14c      	bne.n	8001afe <Test_Uart_Processing+0x16e>
+ 8001a62:	d14d      	bne.n	8001b00 <Uart_Processing+0x170>
 
                 for (int i = 0; i < actualNumberSamples; i++) {
  8001a64:	2300      	movs	r3, #0
  8001a66:	657b      	str	r3, [r7, #84]	@ 0x54
- 8001a68:	e043      	b.n	8001af2 <Test_Uart_Processing+0x162>
+ 8001a68:	e044      	b.n	8001af4 <Uart_Processing+0x164>
 
                     int index = (sampleCounter - 1 - i + NUM_SAMPLES) % NUM_SAMPLES;
- 8001a6a:	4b69      	ldr	r3, [pc, #420]	@ (8001c10 <Test_Uart_Processing+0x280>)
+ 8001a6a:	4b69      	ldr	r3, [pc, #420]	@ (8001c10 <Uart_Processing+0x280>)
  8001a6c:	681a      	ldr	r2, [r3, #0]
  8001a6e:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
  8001a70:	1ad3      	subs	r3, r2, r3
  8001a72:	1c99      	adds	r1, r3, #2
- 8001a74:	4b67      	ldr	r3, [pc, #412]	@ (8001c14 <Test_Uart_Processing+0x284>)
+ 8001a74:	4b67      	ldr	r3, [pc, #412]	@ (8001c14 <Uart_Processing+0x284>)
  8001a76:	fba3 2301 	umull	r2, r3, r3, r1
  8001a7a:	085a      	lsrs	r2, r3, #1
  8001a7c:	4613      	mov	r3, r2
@@ -2776,213 +2776,213 @@ void Test_Uart_Processing(void) {
  8001a84:	64fa      	str	r2, [r7, #76]	@ 0x4c
 
                     readData(index);
- 8001a86:	6cf8      	ldr	r0, [r7, #76]	@ 0x4c
- 8001a88:	f000 f926 	bl	8001cd8 <readData>
+ 8001a86:	6cfb      	ldr	r3, [r7, #76]	@ 0x4c
+ 8001a88:	4618      	mov	r0, r3
+ 8001a8a:	f000 f925 	bl	8001cd8 <readData>
 
                     float t, v1, v2;
                     memcpy(&t,  &readBuffer[0], FLOAT_SIZE);
- 8001a8c:	4b62      	ldr	r3, [pc, #392]	@ (8001c18 <Test_Uart_Processing+0x288>)
- 8001a8e:	681b      	ldr	r3, [r3, #0]
- 8001a90:	63bb      	str	r3, [r7, #56]	@ 0x38
+ 8001a8e:	4b62      	ldr	r3, [pc, #392]	@ (8001c18 <Uart_Processing+0x288>)
+ 8001a90:	681b      	ldr	r3, [r3, #0]
+ 8001a92:	63bb      	str	r3, [r7, #56]	@ 0x38
                     memcpy(&v1, &readBuffer[FLOAT_SIZE], FLOAT_SIZE);
- 8001a92:	4b61      	ldr	r3, [pc, #388]	@ (8001c18 <Test_Uart_Processing+0x288>)
- 8001a94:	685b      	ldr	r3, [r3, #4]
- 8001a96:	637b      	str	r3, [r7, #52]	@ 0x34
+ 8001a94:	4b60      	ldr	r3, [pc, #384]	@ (8001c18 <Uart_Processing+0x288>)
+ 8001a96:	685b      	ldr	r3, [r3, #4]
+ 8001a98:	637b      	str	r3, [r7, #52]	@ 0x34
                     memcpy(&v2, &readBuffer[2 * FLOAT_SIZE], FLOAT_SIZE);
- 8001a98:	4b5f      	ldr	r3, [pc, #380]	@ (8001c18 <Test_Uart_Processing+0x288>)
- 8001a9a:	689b      	ldr	r3, [r3, #8]
- 8001a9c:	633b      	str	r3, [r7, #48]	@ 0x30
+ 8001a9a:	4b5f      	ldr	r3, [pc, #380]	@ (8001c18 <Uart_Processing+0x288>)
+ 8001a9c:	689b      	ldr	r3, [r3, #8]
+ 8001a9e:	633b      	str	r3, [r7, #48]	@ 0x30
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
- 8001a9e:	6bbb      	ldr	r3, [r7, #56]	@ 0x38
- 8001aa0:	4618      	mov	r0, r3
- 8001aa2:	f7fe fd69 	bl	8000578 <__aeabi_f2d>
- 8001aa6:	4604      	mov	r4, r0
- 8001aa8:	460d      	mov	r5, r1
- 8001aaa:	6b7b      	ldr	r3, [r7, #52]	@ 0x34
- 8001aac:	4618      	mov	r0, r3
- 8001aae:	f7fe fd63 	bl	8000578 <__aeabi_f2d>
- 8001ab2:	4680      	mov	r8, r0
- 8001ab4:	4689      	mov	r9, r1
- 8001ab6:	6b3b      	ldr	r3, [r7, #48]	@ 0x30
- 8001ab8:	4618      	mov	r0, r3
- 8001aba:	f7fe fd5d 	bl	8000578 <__aeabi_f2d>
- 8001abe:	4602      	mov	r2, r0
- 8001ac0:	460b      	mov	r3, r1
- 8001ac2:	e9cd 2304 	strd	r2, r3, [sp, #16]
- 8001ac6:	e9cd 8902 	strd	r8, r9, [sp, #8]
- 8001aca:	e9cd 4500 	strd	r4, r5, [sp]
- 8001ace:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
- 8001ad0:	4a52      	ldr	r2, [pc, #328]	@ (8001c1c <Test_Uart_Processing+0x28c>)
- 8001ad2:	f44f 7180 	mov.w	r1, #256	@ 0x100
- 8001ad6:	484d      	ldr	r0, [pc, #308]	@ (8001c0c <Test_Uart_Processing+0x27c>)
- 8001ad8:	f008 fea0 	bl	800a81c <sniprintf>
- 8001adc:	64b8      	str	r0, [r7, #72]	@ 0x48
+ 8001aa0:	6bbb      	ldr	r3, [r7, #56]	@ 0x38
+ 8001aa2:	4618      	mov	r0, r3
+ 8001aa4:	f7fe fd68 	bl	8000578 <__aeabi_f2d>
+ 8001aa8:	4604      	mov	r4, r0
+ 8001aaa:	460d      	mov	r5, r1
+ 8001aac:	6b7b      	ldr	r3, [r7, #52]	@ 0x34
+ 8001aae:	4618      	mov	r0, r3
+ 8001ab0:	f7fe fd62 	bl	8000578 <__aeabi_f2d>
+ 8001ab4:	4680      	mov	r8, r0
+ 8001ab6:	4689      	mov	r9, r1
+ 8001ab8:	6b3b      	ldr	r3, [r7, #48]	@ 0x30
+ 8001aba:	4618      	mov	r0, r3
+ 8001abc:	f7fe fd5c 	bl	8000578 <__aeabi_f2d>
+ 8001ac0:	4602      	mov	r2, r0
+ 8001ac2:	460b      	mov	r3, r1
+ 8001ac4:	e9cd 2304 	strd	r2, r3, [sp, #16]
+ 8001ac8:	e9cd 8902 	strd	r8, r9, [sp, #8]
+ 8001acc:	e9cd 4500 	strd	r4, r5, [sp]
+ 8001ad0:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
+ 8001ad2:	4a52      	ldr	r2, [pc, #328]	@ (8001c1c <Uart_Processing+0x28c>)
+ 8001ad4:	f44f 7180 	mov.w	r1, #256	@ 0x100
+ 8001ad8:	484c      	ldr	r0, [pc, #304]	@ (8001c0c <Uart_Processing+0x27c>)
+ 8001ada:	f008 fe9f 	bl	800a81c <sniprintf>
+ 8001ade:	64b8      	str	r0, [r7, #72]	@ 0x48
                         "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
                         i, t, v1, v2);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
- 8001ade:	6cbb      	ldr	r3, [r7, #72]	@ 0x48
- 8001ae0:	b29a      	uxth	r2, r3
- 8001ae2:	2364      	movs	r3, #100	@ 0x64
- 8001ae4:	4949      	ldr	r1, [pc, #292]	@ (8001c0c <Test_Uart_Processing+0x27c>)
- 8001ae6:	4841      	ldr	r0, [pc, #260]	@ (8001bec <Test_Uart_Processing+0x25c>)
- 8001ae8:	f006 fd54 	bl	8008594 <HAL_UART_Transmit>
+ 8001ae0:	6cbb      	ldr	r3, [r7, #72]	@ 0x48
+ 8001ae2:	b29a      	uxth	r2, r3
+ 8001ae4:	2364      	movs	r3, #100	@ 0x64
+ 8001ae6:	4949      	ldr	r1, [pc, #292]	@ (8001c0c <Uart_Processing+0x27c>)
+ 8001ae8:	4840      	ldr	r0, [pc, #256]	@ (8001bec <Uart_Processing+0x25c>)
+ 8001aea:	f006 fd53 	bl	8008594 <HAL_UART_Transmit>
                 for (int i = 0; i < actualNumberSamples; i++) {
- 8001aec:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
- 8001aee:	3301      	adds	r3, #1
- 8001af0:	657b      	str	r3, [r7, #84]	@ 0x54
- 8001af2:	4b4b      	ldr	r3, [pc, #300]	@ (8001c20 <Test_Uart_Processing+0x290>)
- 8001af4:	681b      	ldr	r3, [r3, #0]
- 8001af6:	6d7a      	ldr	r2, [r7, #84]	@ 0x54
- 8001af8:	429a      	cmp	r2, r3
- 8001afa:	dbb6      	blt.n	8001a6a <Test_Uart_Processing+0xda>
- 8001afc:	e057      	b.n	8001bae <Test_Uart_Processing+0x21e>
+ 8001aee:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
+ 8001af0:	3301      	adds	r3, #1
+ 8001af2:	657b      	str	r3, [r7, #84]	@ 0x54
+ 8001af4:	4b4a      	ldr	r3, [pc, #296]	@ (8001c20 <Uart_Processing+0x290>)
+ 8001af6:	681b      	ldr	r3, [r3, #0]
+ 8001af8:	6d7a      	ldr	r2, [r7, #84]	@ 0x54
+ 8001afa:	429a      	cmp	r2, r3
+ 8001afc:	dbb5      	blt.n	8001a6a <Uart_Processing+0xda>
+ 8001afe:	e057      	b.n	8001bb0 <Uart_Processing+0x220>
                 }
             }
 
             // 3. Force command: f, 1, 1, 3, 2, 1, 6
             else if (line[0] == 'f') {
- 8001afe:	4b3d      	ldr	r3, [pc, #244]	@ (8001bf4 <Test_Uart_Processing+0x264>)
- 8001b00:	781b      	ldrb	r3, [r3, #0]
- 8001b02:	2b66      	cmp	r3, #102	@ 0x66
- 8001b04:	d153      	bne.n	8001bae <Test_Uart_Processing+0x21e>
+ 8001b00:	4b3c      	ldr	r3, [pc, #240]	@ (8001bf4 <Uart_Processing+0x264>)
+ 8001b02:	781b      	ldrb	r3, [r3, #0]
+ 8001b04:	2b66      	cmp	r3, #102	@ 0x66
+ 8001b06:	d153      	bne.n	8001bb0 <Uart_Processing+0x220>
                 WrenchPacket wp = {0};
- 8001b06:	f107 0314 	add.w	r3, r7, #20
- 8001b0a:	2200      	movs	r2, #0
- 8001b0c:	601a      	str	r2, [r3, #0]
- 8001b0e:	605a      	str	r2, [r3, #4]
- 8001b10:	609a      	str	r2, [r3, #8]
- 8001b12:	60da      	str	r2, [r3, #12]
- 8001b14:	611a      	str	r2, [r3, #16]
- 8001b16:	615a      	str	r2, [r3, #20]
- 8001b18:	619a      	str	r2, [r3, #24]
+ 8001b08:	f107 0314 	add.w	r3, r7, #20
+ 8001b0c:	2200      	movs	r2, #0
+ 8001b0e:	601a      	str	r2, [r3, #0]
+ 8001b10:	605a      	str	r2, [r3, #4]
+ 8001b12:	609a      	str	r2, [r3, #8]
+ 8001b14:	60da      	str	r2, [r3, #12]
+ 8001b16:	611a      	str	r2, [r3, #16]
+ 8001b18:	615a      	str	r2, [r3, #20]
+ 8001b1a:	619a      	str	r2, [r3, #24]
 
                 if (sscanf(line, "f, %f, %f, %f, %f, %f, %f",
- 8001b1a:	f107 0314 	add.w	r3, r7, #20
- 8001b1e:	1d19      	adds	r1, r3, #4
- 8001b20:	f107 0214 	add.w	r2, r7, #20
- 8001b24:	f107 0314 	add.w	r3, r7, #20
- 8001b28:	3314      	adds	r3, #20
- 8001b2a:	9303      	str	r3, [sp, #12]
- 8001b2c:	f107 0314 	add.w	r3, r7, #20
- 8001b30:	3310      	adds	r3, #16
- 8001b32:	9302      	str	r3, [sp, #8]
- 8001b34:	f107 0314 	add.w	r3, r7, #20
- 8001b38:	330c      	adds	r3, #12
- 8001b3a:	9301      	str	r3, [sp, #4]
- 8001b3c:	f107 0314 	add.w	r3, r7, #20
- 8001b40:	3308      	adds	r3, #8
- 8001b42:	9300      	str	r3, [sp, #0]
- 8001b44:	460b      	mov	r3, r1
- 8001b46:	4937      	ldr	r1, [pc, #220]	@ (8001c24 <Test_Uart_Processing+0x294>)
- 8001b48:	482a      	ldr	r0, [pc, #168]	@ (8001bf4 <Test_Uart_Processing+0x264>)
- 8001b4a:	f008 febf 	bl	800a8cc <siscanf>
- 8001b4e:	4603      	mov	r3, r0
- 8001b50:	2b06      	cmp	r3, #6
- 8001b52:	d12c      	bne.n	8001bae <Test_Uart_Processing+0x21e>
+ 8001b1c:	f107 0314 	add.w	r3, r7, #20
+ 8001b20:	1d19      	adds	r1, r3, #4
+ 8001b22:	f107 0214 	add.w	r2, r7, #20
+ 8001b26:	f107 0314 	add.w	r3, r7, #20
+ 8001b2a:	3314      	adds	r3, #20
+ 8001b2c:	9303      	str	r3, [sp, #12]
+ 8001b2e:	f107 0314 	add.w	r3, r7, #20
+ 8001b32:	3310      	adds	r3, #16
+ 8001b34:	9302      	str	r3, [sp, #8]
+ 8001b36:	f107 0314 	add.w	r3, r7, #20
+ 8001b3a:	330c      	adds	r3, #12
+ 8001b3c:	9301      	str	r3, [sp, #4]
+ 8001b3e:	f107 0314 	add.w	r3, r7, #20
+ 8001b42:	3308      	adds	r3, #8
+ 8001b44:	9300      	str	r3, [sp, #0]
+ 8001b46:	460b      	mov	r3, r1
+ 8001b48:	4936      	ldr	r1, [pc, #216]	@ (8001c24 <Uart_Processing+0x294>)
+ 8001b4a:	482a      	ldr	r0, [pc, #168]	@ (8001bf4 <Uart_Processing+0x264>)
+ 8001b4c:	f008 febe 	bl	800a8cc <siscanf>
+ 8001b50:	4603      	mov	r3, r0
+ 8001b52:	2b06      	cmp	r3, #6
+ 8001b54:	d12c      	bne.n	8001bb0 <Uart_Processing+0x220>
                     &wp.force_x, &wp.force_y, &wp.force_z,
                     &wp.torque_x, &wp.torque_y, &wp.torque_z) == 6) {
 
                     wp.isValid = true;
- 8001b54:	2301      	movs	r3, #1
- 8001b56:	f887 302c 	strb.w	r3, [r7, #44]	@ 0x2c
+ 8001b56:	2301      	movs	r3, #1
+ 8001b58:	f887 302c 	strb.w	r3, [r7, #44]	@ 0x2c
 
                     uint16_t pwm[NUM_THRUSTERS];
                     Compute_PWM_From_Wrench(&wp, pwm);
- 8001b5a:	1d3a      	adds	r2, r7, #4
- 8001b5c:	f107 0314 	add.w	r3, r7, #20
- 8001b60:	4611      	mov	r1, r2
- 8001b62:	4618      	mov	r0, r3
- 8001b64:	f7ff fe98 	bl	8001898 <Compute_PWM_From_Wrench>
+ 8001b5c:	1d3a      	adds	r2, r7, #4
+ 8001b5e:	f107 0314 	add.w	r3, r7, #20
+ 8001b62:	4611      	mov	r1, r2
+ 8001b64:	4618      	mov	r0, r3
+ 8001b66:	f7ff fe97 	bl	8001898 <Compute_PWM_From_Wrench>
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         "PWM:[%u,%u,%u,%u,%u,%u,%u,%u]\r\n",
                         pwm[0], pwm[1], pwm[2], pwm[3],
- 8001b68:	88bb      	ldrh	r3, [r7, #4]
+ 8001b6a:	88bb      	ldrh	r3, [r7, #4]
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
- 8001b6a:	469c      	mov	ip, r3
+ 8001b6c:	469c      	mov	ip, r3
                         pwm[0], pwm[1], pwm[2], pwm[3],
- 8001b6c:	88fb      	ldrh	r3, [r7, #6]
- 8001b6e:	893a      	ldrh	r2, [r7, #8]
- 8001b70:	8979      	ldrh	r1, [r7, #10]
+ 8001b6e:	88fb      	ldrh	r3, [r7, #6]
+ 8001b70:	893a      	ldrh	r2, [r7, #8]
+ 8001b72:	8979      	ldrh	r1, [r7, #10]
                         pwm[4], pwm[5], pwm[6], pwm[7]);
- 8001b72:	89b8      	ldrh	r0, [r7, #12]
- 8001b74:	89fc      	ldrh	r4, [r7, #14]
- 8001b76:	8a3d      	ldrh	r5, [r7, #16]
- 8001b78:	8a7e      	ldrh	r6, [r7, #18]
+ 8001b74:	89b8      	ldrh	r0, [r7, #12]
+ 8001b76:	89fc      	ldrh	r4, [r7, #14]
+ 8001b78:	8a3d      	ldrh	r5, [r7, #16]
+ 8001b7a:	8a7e      	ldrh	r6, [r7, #18]
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
- 8001b7a:	9606      	str	r6, [sp, #24]
- 8001b7c:	9505      	str	r5, [sp, #20]
- 8001b7e:	9404      	str	r4, [sp, #16]
- 8001b80:	9003      	str	r0, [sp, #12]
- 8001b82:	9102      	str	r1, [sp, #8]
- 8001b84:	9201      	str	r2, [sp, #4]
- 8001b86:	9300      	str	r3, [sp, #0]
- 8001b88:	4663      	mov	r3, ip
- 8001b8a:	4a27      	ldr	r2, [pc, #156]	@ (8001c28 <Test_Uart_Processing+0x298>)
- 8001b8c:	f44f 7180 	mov.w	r1, #256	@ 0x100
- 8001b90:	481e      	ldr	r0, [pc, #120]	@ (8001c0c <Test_Uart_Processing+0x27c>)
- 8001b92:	f008 fe43 	bl	800a81c <sniprintf>
- 8001b96:	6538      	str	r0, [r7, #80]	@ 0x50
+ 8001b7c:	9606      	str	r6, [sp, #24]
+ 8001b7e:	9505      	str	r5, [sp, #20]
+ 8001b80:	9404      	str	r4, [sp, #16]
+ 8001b82:	9003      	str	r0, [sp, #12]
+ 8001b84:	9102      	str	r1, [sp, #8]
+ 8001b86:	9201      	str	r2, [sp, #4]
+ 8001b88:	9300      	str	r3, [sp, #0]
+ 8001b8a:	4663      	mov	r3, ip
+ 8001b8c:	4a26      	ldr	r2, [pc, #152]	@ (8001c28 <Uart_Processing+0x298>)
+ 8001b8e:	f44f 7180 	mov.w	r1, #256	@ 0x100
+ 8001b92:	481e      	ldr	r0, [pc, #120]	@ (8001c0c <Uart_Processing+0x27c>)
+ 8001b94:	f008 fe42 	bl	800a81c <sniprintf>
+ 8001b98:	6538      	str	r0, [r7, #80]	@ 0x50
 
                     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm[0]);
- 8001b98:	88ba      	ldrh	r2, [r7, #4]
- 8001b9a:	4b24      	ldr	r3, [pc, #144]	@ (8001c2c <Test_Uart_Processing+0x29c>)
- 8001b9c:	681b      	ldr	r3, [r3, #0]
- 8001b9e:	63da      	str	r2, [r3, #60]	@ 0x3c
+ 8001b9a:	88ba      	ldrh	r2, [r7, #4]
+ 8001b9c:	4b23      	ldr	r3, [pc, #140]	@ (8001c2c <Uart_Processing+0x29c>)
+ 8001b9e:	681b      	ldr	r3, [r3, #0]
+ 8001ba0:	63da      	str	r2, [r3, #60]	@ 0x3c
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
- 8001ba0:	6d3b      	ldr	r3, [r7, #80]	@ 0x50
- 8001ba2:	b29a      	uxth	r2, r3
- 8001ba4:	2364      	movs	r3, #100	@ 0x64
- 8001ba6:	4919      	ldr	r1, [pc, #100]	@ (8001c0c <Test_Uart_Processing+0x27c>)
- 8001ba8:	4810      	ldr	r0, [pc, #64]	@ (8001bec <Test_Uart_Processing+0x25c>)
- 8001baa:	f006 fcf3 	bl	8008594 <HAL_UART_Transmit>
+ 8001ba2:	6d3b      	ldr	r3, [r7, #80]	@ 0x50
+ 8001ba4:	b29a      	uxth	r2, r3
+ 8001ba6:	2364      	movs	r3, #100	@ 0x64
+ 8001ba8:	4918      	ldr	r1, [pc, #96]	@ (8001c0c <Uart_Processing+0x27c>)
+ 8001baa:	4810      	ldr	r0, [pc, #64]	@ (8001bec <Uart_Processing+0x25c>)
+ 8001bac:	f006 fcf2 	bl	8008594 <HAL_UART_Transmit>
                 }
             }
 
             // reset buffer
             idx = 0;
- 8001bae:	4b10      	ldr	r3, [pc, #64]	@ (8001bf0 <Test_Uart_Processing+0x260>)
- 8001bb0:	2200      	movs	r2, #0
- 8001bb2:	701a      	strb	r2, [r3, #0]
+ 8001bb0:	4b0f      	ldr	r3, [pc, #60]	@ (8001bf0 <Uart_Processing+0x260>)
+ 8001bb2:	2200      	movs	r2, #0
+ 8001bb4:	701a      	strb	r2, [r3, #0]
             else {
                 idx = 0; // overflow protection
             }
         }
     }
 }
- 8001bb4:	e012      	b.n	8001bdc <Test_Uart_Processing+0x24c>
+ 8001bb6:	e012      	b.n	8001bde <Uart_Processing+0x24e>
             if (idx < sizeof(line) - 1) {
- 8001bb6:	4b0e      	ldr	r3, [pc, #56]	@ (8001bf0 <Test_Uart_Processing+0x260>)
- 8001bb8:	781b      	ldrb	r3, [r3, #0]
- 8001bba:	2b7e      	cmp	r3, #126	@ 0x7e
- 8001bbc:	d80b      	bhi.n	8001bd6 <Test_Uart_Processing+0x246>
+ 8001bb8:	4b0d      	ldr	r3, [pc, #52]	@ (8001bf0 <Uart_Processing+0x260>)
+ 8001bba:	781b      	ldrb	r3, [r3, #0]
+ 8001bbc:	2b7e      	cmp	r3, #126	@ 0x7e
+ 8001bbe:	d80b      	bhi.n	8001bd8 <Uart_Processing+0x248>
                 line[idx++] = byte;
- 8001bbe:	4b0c      	ldr	r3, [pc, #48]	@ (8001bf0 <Test_Uart_Processing+0x260>)
- 8001bc0:	781b      	ldrb	r3, [r3, #0]
- 8001bc2:	1c5a      	adds	r2, r3, #1
- 8001bc4:	b2d1      	uxtb	r1, r2
- 8001bc6:	4a0a      	ldr	r2, [pc, #40]	@ (8001bf0 <Test_Uart_Processing+0x260>)
- 8001bc8:	7011      	strb	r1, [r2, #0]
- 8001bca:	461a      	mov	r2, r3
- 8001bcc:	4b06      	ldr	r3, [pc, #24]	@ (8001be8 <Test_Uart_Processing+0x258>)
- 8001bce:	7819      	ldrb	r1, [r3, #0]
- 8001bd0:	4b08      	ldr	r3, [pc, #32]	@ (8001bf4 <Test_Uart_Processing+0x264>)
- 8001bd2:	5499      	strb	r1, [r3, r2]
+ 8001bc0:	4b0b      	ldr	r3, [pc, #44]	@ (8001bf0 <Uart_Processing+0x260>)
+ 8001bc2:	781b      	ldrb	r3, [r3, #0]
+ 8001bc4:	1c5a      	adds	r2, r3, #1
+ 8001bc6:	b2d1      	uxtb	r1, r2
+ 8001bc8:	4a09      	ldr	r2, [pc, #36]	@ (8001bf0 <Uart_Processing+0x260>)
+ 8001bca:	7011      	strb	r1, [r2, #0]
+ 8001bcc:	461a      	mov	r2, r3
+ 8001bce:	4b06      	ldr	r3, [pc, #24]	@ (8001be8 <Uart_Processing+0x258>)
+ 8001bd0:	7819      	ldrb	r1, [r3, #0]
+ 8001bd2:	4b08      	ldr	r3, [pc, #32]	@ (8001bf4 <Uart_Processing+0x264>)
+ 8001bd4:	5499      	strb	r1, [r3, r2]
 }
- 8001bd4:	e002      	b.n	8001bdc <Test_Uart_Processing+0x24c>
+ 8001bd6:	e002      	b.n	8001bde <Uart_Processing+0x24e>
                 idx = 0; // overflow protection
- 8001bd6:	4b06      	ldr	r3, [pc, #24]	@ (8001bf0 <Test_Uart_Processing+0x260>)
- 8001bd8:	2200      	movs	r2, #0
- 8001bda:	701a      	strb	r2, [r3, #0]
+ 8001bd8:	4b05      	ldr	r3, [pc, #20]	@ (8001bf0 <Uart_Processing+0x260>)
+ 8001bda:	2200      	movs	r2, #0
+ 8001bdc:	701a      	strb	r2, [r3, #0]
 }
- 8001bdc:	bf00      	nop
- 8001bde:	375c      	adds	r7, #92	@ 0x5c
- 8001be0:	46bd      	mov	sp, r7
- 8001be2:	e8bd 83f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, r9, pc}
- 8001be6:	bf00      	nop
+ 8001bde:	bf00      	nop
+ 8001be0:	375c      	adds	r7, #92	@ 0x5c
+ 8001be2:	46bd      	mov	sp, r7
+ 8001be4:	e8bd 83f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, r9, pc}
  8001be8:	200003a8 	.word	0x200003a8
  8001bec:	20000a2c 	.word	0x20000a2c
  8001bf0:	20000814 	.word	0x20000814
@@ -3008,7 +3008,7 @@ void Test_Uart_Processing(void) {
 	return(wrench);
 } // WrenchPacket UART_Parse_Wrench(uint8_t byte)
 
-void writeData() {
+void writeData(void) {
  8001c30:	b580      	push	{r7, lr}
  8001c32:	b082      	sub	sp, #8
  8001c34:	af00      	add	r7, sp, #0

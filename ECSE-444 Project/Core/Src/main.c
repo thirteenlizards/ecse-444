@@ -128,10 +128,12 @@ static const float32_t mount_dirs[NUM_THRUSTERS] = {
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 WrenchPacket UART_Parse_Wrench(uint8_t byte);
-void         Test_Uart_Processing(void);
+void         Uart_Processing(void);
 void         ThrustMapper_Init(void);
 void         Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]);
 float32_t    Force_To_PWM(float32_t force);
+void writeData(void);
+void readData(uint32_t sample_number);
 
 /* USER CODE END PFP */
 
@@ -196,7 +198,7 @@ int main(void)
   while (1)
   {
 	  // UART write-back to test parsing of input strings
-	  Test_Uart_Processing();
+	  Uart_Processing();
 
 	  //temperature = BSP_TSENSOR_ReadTemp();
 
@@ -345,7 +347,7 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
  * @return 			whatever u want!
  */
 
-void Test_Uart_Processing(void) {
+void Uart_Processing(void) {
     static char line[128];
     static uint8_t idx = 0;
 
@@ -505,7 +507,7 @@ WrenchPacket UART_Parse_Wrench(uint8_t byte) {
 	return(wrench);
 } // WrenchPacket UART_Parse_Wrench(uint8_t byte)
 
-void writeData() {
+void writeData(void) {
     uint32_t writeIndex = sampleCounter % NUM_SAMPLES;
     uint32_t writeAddress = BASE_ADDRESS + writeIndex * SAMPLE_SIZE;
 
