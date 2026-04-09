@@ -54,21 +54,37 @@ typedef struct {
 
 #define NUM_SENSORS 3
 #define FLOAT_SIZE sizeof(float)
-#define SAMPLE_SIZE 32
+#define SAMPLE_SIZE 0x1000 // MAKE ALIGNED WITH A PROPER BOUNDARY, NOT JUST 32
 #define BASE_ADDRESS 0x00000000
 
-/*
-#define NUM_SAMPLES 100 // better sample size
+
+#define NUM_SAMPLES 5 // better sample size
 #define FLASH_BLOCK_ADDR 		0x000000 // flash base addresses are spaced to hold floats
 #define TEMP_FLASH_ADDR			0x000000
 #define VOLTAGE1_FLASH_ADDR  	0x001000
 #define VOLTAGE2_FLASH_ADDR	    0x002000
-*/
+
 
 uint32_t sampleCounter = 0;
 uint8_t writeBuffer[SAMPLE_SIZE];
 uint8_t readBuffer[SAMPLE_SIZE];
 int actualNumberSamples = 0;
+
+// Samples of sensor data
+float tempSample, voltage1Sample, voltage2Sample;
+
+// Store samples of sensor data in an array
+float tempData[NUM_SAMPLES];
+float voltage1Data[NUM_SAMPLES];
+float voltage2Data[NUM_SAMPLES];
+
+// Counter for number of samples taken from each sensor (assume all taken at the same time)
+uint16_t sampleCount = {0};
+
+// Create data structure to store sensor data read from flash
+float tempDataFlashRead[NUM_SAMPLES];
+float voltage1DataFlashRead[NUM_SAMPLES];
+float voltage2DataFlashRead[NUM_SAMPLES];
 
 
 float temperature = -1.0;
@@ -142,6 +158,8 @@ void         Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRU
 float32_t    Force_To_PWM(float32_t force);
 void writeData(void);
 void readData(uint32_t sample_number);
+void Sensors_Write_to_Flash();
+void Sensors_Read_from_Flash();
 
 /* USER CODE END PFP */
 
@@ -195,9 +213,13 @@ int main(void)
 	  Error_Handler();
 	}
 
-	if (BSP_QSPI_Erase_Block(BASE_ADDRESS) != QSPI_OK) {
-	  Error_Handler();
-	}
+  // Erase all NUM_SENSORS slots at startup
+  for (int i = 0; i < NUM_SENSORS; i++) {
+      if (BSP_QSPI_Erase_Block(BASE_ADDRESS + i * SAMPLE_SIZE) != QSPI_OK) {
+          Error_Handler();
+      }
+  }
+
 
   /* USER CODE END 2 */
 
@@ -368,19 +390,32 @@ void Uart_Processing(void) {
 
             // 1. Voltage command: v, 16.8, 14.5
             if (line[0] == 'v') {
-                float v1, v2;
+                //float v1, v2;
 
-                if (sscanf(line, "v, %f, %f", &v1, &v2) == 2) {
-                    voltage1 = v1;
-                    voltage2 = v2;
+                if (sscanf(line, "v, %f, %f", &voltage1Sample, &voltage2Sample) == 2) {
 
-                    temperature = BSP_TSENSOR_ReadTemp();
 
-                    writeData();  // store in QSPI
+                    voltage1Data[sampleCount] = voltage1Sample;
+                    voltage2Data[sampleCount] = voltage2Sample;
+
+                    tempSample = BSP_TSENSOR_ReadTemp();
+                    tempData[sampleCount] = tempSample;
+
+                    // Increment the sample counter
+                    sampleCount++;
+
+                    if (sampleCount > (NUM_SAMPLES)) {
+                    	// store in QSPI
+                    	//writeData();
+                    	Sensors_Write_to_Flash();
+                    	sampleCount = 0;
+                    }
+
+
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-                        "Stored -> T: %.2f V1: %.2f V2: %.2f\r\n",
-                        temperature, voltage1, voltage2);
+                        "Data -> T: %.2f V1: %.2f V2: %.2f\r\n",
+                        tempSample, voltage1Sample, voltage2Sample);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
                 }
@@ -389,24 +424,14 @@ void Uart_Processing(void) {
             // 2. Telemetry command: t
             else if (line[0] == 't') {
 
-                for (int i = 0; i < actualNumberSamples; i++) {
+                for (int i = 0; i < (NUM_SAMPLES); i++) {
 
-
-                    //int index = (sampleCounter - 1 - i + NUM_SENSORS) % NUM_SENSORS;
-
-                	// cast to prevent wrap-around
-                	int index = ((int)sampleCounter - 1 - i + NUM_SENSORS) % NUM_SENSORS;
-
-                    readData(index);
-
-                    float t, v1, v2;
-                    memcpy(&t,  &readBuffer[0], FLOAT_SIZE);
-                    memcpy(&v1, &readBuffer[FLOAT_SIZE], FLOAT_SIZE);
-                    memcpy(&v2, &readBuffer[2 * FLOAT_SIZE], FLOAT_SIZE);
+                	// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
+                	Sensors_Read_from_Flash();
 
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         "Sample %d -> T: %.2f V1: %.2f V2: %.2f\r\n",
-                        i, t, v1, v2);
+                        i, tempDataFlashRead[i], voltage1DataFlashRead[i], voltage2DataFlashRead[i]);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
                 }
@@ -521,20 +546,14 @@ WrenchPacket UART_Parse_Wrench(uint8_t byte) {
 } // WrenchPacket UART_Parse_Wrench(uint8_t byte)
 
 
-// OLD UART WRITE FUNCTION ------------------------------------
+// OLD FLASH WRITE FUNCTION ------------------------------------
 void writeData(void) {
     uint32_t writeIndex = sampleCounter % NUM_SENSORS;
     uint32_t writeAddress = BASE_ADDRESS + writeIndex * SAMPLE_SIZE;
 
-    //if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
-    //    Error_Handler();
-    //}
-
-    // Erase all NUM_SENSORS slots at startup
-    for (int i = 0; i < NUM_SENSORS; i++) {
-        if (BSP_QSPI_Erase_Block(BASE_ADDRESS + i * SAMPLE_SIZE) != QSPI_OK) {
-            Error_Handler();
-        }
+    // Erase only this slot before writing
+    if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
+        Error_Handler();
     }
 
     memset(writeBuffer, 0, SAMPLE_SIZE);
@@ -554,11 +573,34 @@ void writeData(void) {
     }
 }
 
-// NEW UART WRITE FUNCTION -----------------------------------------
+// NEW FLASh WRITE FUNCTION -----------------------------------------
+
+/**
+ * @name Sensors_Write_to_Flash() {
+ *
+ *
+ * @param[in] Global: Sensor Data Buffers: tempData, pressureData, magData, accelSample
+ */
+void Sensors_Write_to_Flash() {
+
+	BSP_QSPI_Erase_Block(FLASH_BLOCK_ADDR);
+
+	// tempData[100] = 100 floats * 4B/float = 400B
+    BSP_QSPI_Write((uint8_t*)tempData, TEMP_FLASH_ADDR, sizeof(tempData));
+
+    // 100 floats * 4B/float = 400B
+    BSP_QSPI_Write((uint8_t*)voltage1Data, VOLTAGE1_FLASH_ADDR, sizeof(voltage1Data));
+
+    // 100 floats * 4B/float = 400B
+    BSP_QSPI_Write((uint8_t*)voltage2Data, VOLTAGE2_FLASH_ADDR, sizeof(voltage2Data));
 
 
+}
 
 
+/////
+
+/// OLD FLASH READ FUNCTION
 
 void readData(uint32_t sample_number) {
     uint32_t readAddress = BASE_ADDRESS + (sample_number % NUM_SENSORS) * SAMPLE_SIZE;
@@ -566,6 +608,34 @@ void readData(uint32_t sample_number) {
     if (BSP_QSPI_Read(readBuffer, readAddress, SAMPLE_SIZE) != QSPI_OK) {
         Error_Handler();
     }
+}
+
+///// NEW FLASH READ FUNCTOIN
+/**
+ * @name Sensors_Read_from_Flash() {s
+ *
+ * Reads sensor data from flash to other data buffers
+ *
+ * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
+ */
+
+void Sensors_Read_from_Flash() {
+
+	// tempData[100] = 100 floats * 4B/float = 400B
+	if (BSP_QSPI_Read((uint8_t*)tempDataFlashRead, TEMP_FLASH_ADDR, sizeof(tempDataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
+    // pressureData[100] = 100 floats * 4B/float = 400B
+	if (BSP_QSPI_Read((uint8_t*)voltage1DataFlashRead, VOLTAGE1_FLASH_ADDR, sizeof(voltage1DataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
+    // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
+	if (BSP_QSPI_Read((uint8_t*)voltage2DataFlashRead, VOLTAGE2_FLASH_ADDR, sizeof(voltage2DataFlashRead)) != QSPI_OK){
+	      Error_Handler();
+	}
+
 }
 
 /* USER CODE END 4 */
