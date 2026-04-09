@@ -52,10 +52,18 @@ typedef struct {
     bool isValid;
 } WrenchPacket;
 
-#define NUM_SAMPLES 3
+#define NUM_SENSORS 3
 #define FLOAT_SIZE sizeof(float)
 #define SAMPLE_SIZE 32
 #define BASE_ADDRESS 0x00000000
+
+/*
+#define NUM_SAMPLES 100 // better sample size
+#define FLASH_BLOCK_ADDR 		0x000000 // flash base addresses are spaced to hold floats
+#define TEMP_FLASH_ADDR			0x000000
+#define VOLTAGE1_FLASH_ADDR  	0x001000
+#define VOLTAGE2_FLASH_ADDR	    0x002000
+*/
 
 uint32_t sampleCounter = 0;
 uint8_t writeBuffer[SAMPLE_SIZE];
@@ -341,7 +349,7 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
 }
 
 /**
- * UART Writeback to test UART functionning
+ * UART Writeback to show UART working, also does processing
  * process next byte.
  * @param byte 		next byte from uart
  * @return 			whatever u want!
@@ -383,7 +391,11 @@ void Uart_Processing(void) {
 
                 for (int i = 0; i < actualNumberSamples; i++) {
 
-                    int index = (sampleCounter - 1 - i + NUM_SAMPLES) % NUM_SAMPLES;
+
+                    //int index = (sampleCounter - 1 - i + NUM_SENSORS) % NUM_SENSORS;
+
+                	// cast to prevent wrap-around
+                	int index = ((int)sampleCounter - 1 - i + NUM_SENSORS) % NUM_SENSORS;
 
                     readData(index);
 
@@ -440,6 +452,7 @@ void Uart_Processing(void) {
 
 
 /**
+ * (OBSOLETE, MERGED INTO UART_PROCESSING)
  * State machine to manage wrench packets over UART, call repeatedly to
  * process next byte.
  * @param byte 		next byte from uart
@@ -507,12 +520,21 @@ WrenchPacket UART_Parse_Wrench(uint8_t byte) {
 	return(wrench);
 } // WrenchPacket UART_Parse_Wrench(uint8_t byte)
 
+
+// OLD UART WRITE FUNCTION ------------------------------------
 void writeData(void) {
-    uint32_t writeIndex = sampleCounter % NUM_SAMPLES;
+    uint32_t writeIndex = sampleCounter % NUM_SENSORS;
     uint32_t writeAddress = BASE_ADDRESS + writeIndex * SAMPLE_SIZE;
 
-    if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
-        Error_Handler();
+    //if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
+    //    Error_Handler();
+    //}
+
+    // Erase all NUM_SENSORS slots at startup
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        if (BSP_QSPI_Erase_Block(BASE_ADDRESS + i * SAMPLE_SIZE) != QSPI_OK) {
+            Error_Handler();
+        }
     }
 
     memset(writeBuffer, 0, SAMPLE_SIZE);
@@ -527,14 +549,19 @@ void writeData(void) {
 
     sampleCounter++;
 
-    if (actualNumberSamples < NUM_SAMPLES) {
+    if (actualNumberSamples < NUM_SENSORS) {
         actualNumberSamples++;
     }
 }
 
+// NEW UART WRITE FUNCTION -----------------------------------------
+
+
+
+
 
 void readData(uint32_t sample_number) {
-    uint32_t readAddress = BASE_ADDRESS + (sample_number % NUM_SAMPLES) * SAMPLE_SIZE;
+    uint32_t readAddress = BASE_ADDRESS + (sample_number % NUM_SENSORS) * SAMPLE_SIZE;
 
     if (BSP_QSPI_Read(readBuffer, readAddress, SAMPLE_SIZE) != QSPI_OK) {
         Error_Handler();
