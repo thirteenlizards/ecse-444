@@ -64,6 +64,8 @@ typedef struct {
 #define VOLTAGE1_FLASH_ADDR  	0x001000
 #define VOLTAGE2_FLASH_ADDR	    0x002000
 
+#define MAX_TEMP	28
+
 
 uint32_t sampleCounter = 0;
 uint8_t writeBuffer[SAMPLE_SIZE];
@@ -86,6 +88,8 @@ float tempDataFlashRead[NUM_SAMPLES];
 float voltage1DataFlashRead[NUM_SAMPLES];
 float voltage2DataFlashRead[NUM_SAMPLES];
 bool writeOnce = false;
+
+uint16_t fakeTimeout = 0;
 
 
 float temperature = -1.0;
@@ -110,6 +114,8 @@ float voltage2 = -1.0;
 #define PWM_NEUTRAL     1500
 #define PWM_LOWER       1228     // thruster_PWM_lower_limit
 #define PWM_UPPER       1768     // thruster_PWM_upper_limit
+
+#define FAKE_TIMEOUT_MAX 200
 
 /* USER CODE END PD */
 
@@ -161,6 +167,7 @@ void writeData(void);
 void readData(uint32_t sample_number);
 void Sensors_Write_to_Flash();
 void Sensors_Read_from_Flash();
+void System_Status_Check();
 
 /* USER CODE END PFP */
 
@@ -228,6 +235,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  fakeTimeout++;
+
+	  if (fakeTimeout > FAKE_TIMEOUT_MAX) {
+		  System_Status_Check();
+		  fakeTimeout = 0;
+	  }
+
 	  // UART write-back to test parsing of input strings
 	  Uart_Processing();
 
@@ -674,9 +689,27 @@ void Sensors_Read_from_Flash() {
 
 void System_Status_Check() {
 
-	Sensors_Read_from_Flash();
+	if (writeOnce) { // wait until have enough data
+		Sensors_Read_from_Flash();
+
+		float avgTemp = 0;
+
+		for (uint8_t i = 0; i <= NUM_SAMPLES; i++) {
+
+			avgTemp += tempDataFlashRead[i];
+
+		} // loopdy loop
+
+		avgTemp = avgTemp / (float)NUM_SAMPLES;
+
+		if (avgTemp > (float)MAX_TEMP) {
+				int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+					"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
+				HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+		}
 
 
+	} // guard
 
 }
 
