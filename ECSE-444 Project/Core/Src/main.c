@@ -706,11 +706,24 @@ void System_Status_Check() {
 				int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
 					"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
 				HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+				HAL_SuspendTick();
+				HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		}
 
 
 	} // guard
 
+}
+
+
+// check interrrupt code
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if(GPIO_Pin == GPIO_PIN_1) // If The INT Source Is EXTI Line1 (A1 Pin)
+    {
+        // CPU Has Exited From Sleep Mode, Resume The SysTick!
+        HAL_ResumeTick();
+    }
 }
 
 /* USER CODE END 4 */

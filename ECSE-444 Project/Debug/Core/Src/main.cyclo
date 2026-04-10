@@ -11,5 +11,6 @@
 ../Core/Src/main.c:645:6:readData	2
 ../Core/Src/main.c:662:6:Sensors_Read_from_Flash	4
 ../Core/Src/main.c:690:6:System_Status_Check	4
-../Core/Src/main.c:726:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:744:6:Error_Handler	1
+../Core/Src/main.c:720:6:HAL_GPIO_EXTI_Callback	2
+../Core/Src/main.c:739:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:757:6:Error_Handler	1
