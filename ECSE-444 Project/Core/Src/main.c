@@ -64,7 +64,7 @@ typedef struct {
 #define VOLTAGE1_FLASH_ADDR  	0x001000
 #define VOLTAGE2_FLASH_ADDR	    0x002000
 
-#define MAX_TEMP	28
+#define MAX_TEMP	30
 
 
 uint32_t sampleCounter = 0;
@@ -168,6 +168,7 @@ void readData(uint32_t sample_number);
 void Sensors_Write_to_Flash();
 void Sensors_Read_from_Flash();
 void System_Status_Check();
+void Sleep_Mode();
 
 /* USER CODE END PFP */
 
@@ -235,13 +236,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+/*
 	  fakeTimeout++;
 
 	  if (fakeTimeout > FAKE_TIMEOUT_MAX) {
 		  System_Status_Check();
 		  fakeTimeout = 0;
 	  }
+	  */
 
 	  // UART write-back to test parsing of input strings
 	  Uart_Processing();
@@ -435,6 +437,13 @@ void Uart_Processing(void) {
                         tempSample, voltage1Sample, voltage2Sample);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+
+                    if ((voltage1Sample < 10) || (voltage2Sample < 10)) {
+						int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+									"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
+								HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
+								Sleep_Mode();
+                    }
                 }
             }
 
@@ -690,30 +699,40 @@ void Sensors_Read_from_Flash() {
 void System_Status_Check() {
 
 	if (writeOnce) { // wait until have enough data
-		Sensors_Read_from_Flash();
+		//Sensors_Read_from_Flash();
 
-		float avgTemp = 0;
+		//float avgTemp = 0;
 
-		for (uint8_t i = 0; i <= NUM_SAMPLES; i++) {
+		//for (uint8_t i = 0; i <= NUM_SAMPLES; i++) {
 
-			avgTemp += tempDataFlashRead[i];
+			//avgTemp += tempDataFlashRead[i];
 
 		} // loopdy loop
 
-		avgTemp = avgTemp / (float)NUM_SAMPLES;
+		//avgTemp = avgTemp / (float)NUM_SAMPLES;
 
-		if (avgTemp > (float)MAX_TEMP) {
-				int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+		//if (avgTemp > (float)MAX_TEMP) {
+		int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
 					"AHHHH AHHHHH HOLY SHIT I'M ON FIRE AHHHHHHHHHHHHHHHH\n");
 				HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
-				HAL_SuspendTick();
-				HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-		}
+				Sleep_Mode();
+				//HAL_SuspendTick();
+				//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		//}
 
 
-	} // guard
+	//} // guard
 
 }
+
+
+// Enter Sleep Mode
+void Sleep_Mode() {
+	HAL_SuspendTick();
+	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+}
+
 
 
 // check interrrupt code
@@ -723,6 +742,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
         // CPU Has Exited From Sleep Mode, Resume The SysTick!
         HAL_ResumeTick();
+        int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
+            "ON THE FOURTH DAY GOD HAS RISEN... GOD IS ME");
+        HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
     }
 }
 
