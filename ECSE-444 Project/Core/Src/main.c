@@ -15,6 +15,14 @@
   *
   ******************************************************************************
   */
+
+/*
+ * Code References:
+ * Sleep Mode: https://wiki.st.com/stm32mcu/wiki/Getting_started_with_PWR#Configure_the_sleep_mode
+ * Wrench to PWM: https://github.com/mcgill-robotics/AUV-2025/blob/noetic/catkin_ws/src/propulsion/src/thrust_mapper.py
+ * All previous labs for ECSE444, all course materials from ECSE 444
+ */
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -38,9 +46,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-// States of UART processing
-typedef enum { Waiting, Receiving } UartState;
 
+/* Struct for wrench vector */
 typedef struct {
     union {
         float wrench[6];
@@ -52,54 +59,12 @@ typedef struct {
     bool isValid;
 } WrenchPacket;
 
-#define NUM_SENSORS 3
-#define FLOAT_SIZE sizeof(float)
-#define SAMPLE_SIZE 0x1000 // MAKE ALIGNED WITH A PROPER BOUNDARY, NOT JUST 32
-#define BASE_ADDRESS 0x00000000
-
-
-#define NUM_SAMPLES 5 // better sample size
-#define FLASH_BLOCK_ADDR 		0x000000 // flash base addresses are spaced to hold floats
-#define TEMP_FLASH_ADDR			0x000000
-#define VOLTAGE1_FLASH_ADDR  	0x001000
-#define VOLTAGE2_FLASH_ADDR	    0x002000
-
-#define MAX_TEMP	30
-
-
-uint32_t sampleCounter = 0;
-uint8_t writeBuffer[SAMPLE_SIZE];
-uint8_t readBuffer[SAMPLE_SIZE];
-int actualNumberSamples = 0;
-
-// Samples of sensor data
-float tempSample, voltage1Sample, voltage2Sample;
-
-// Store samples of sensor data in an array
-float tempData[NUM_SAMPLES];
-float voltage1Data[NUM_SAMPLES];
-float voltage2Data[NUM_SAMPLES];
-
-// Counter for number of samples taken from each sensor (assume all taken at the same time)
-uint16_t sampleCount = {0};
-
-// Create data structure to store sensor data read from flash
-float tempDataFlashRead[NUM_SAMPLES];
-float voltage1DataFlashRead[NUM_SAMPLES];
-float voltage2DataFlashRead[NUM_SAMPLES];
-bool writeOnce = false;
-
-uint16_t fakeTimeout = 0;
-
-
-float temperature = -1.0;
-float voltage1 = -1.0;
-float voltage2 = -1.0;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 #define UART_RX_TIMEOUT      100
 #define UART_TX_TIMEOUT      100
 #define UART_RX_BUFFER_SIZE  128
@@ -115,7 +80,14 @@ float voltage2 = -1.0;
 #define PWM_LOWER       1228     // thruster_PWM_lower_limit
 #define PWM_UPPER       1768     // thruster_PWM_upper_limit
 
-#define FAKE_TIMEOUT_MAX 200
+#define NUM_SENSORS 			3			// Temperature, voltage1, voltage 2
+#define NUM_SAMPLES 			5  			// Can increment to be a larger number of samples as desired
+#define DATA_SIZE 				0x1000
+#define FLASH_BLOCK_ADDR 		0x000000 	// Base address of flash memory area used
+#define TEMP_FLASH_ADDR			0x000000
+#define VOLTAGE1_FLASH_ADDR  	0x001000
+#define VOLTAGE2_FLASH_ADDR	    0x002000
+#define MAX_TEMP				30		    // Max allowed temperature
 
 /* USER CODE END PD */
 
@@ -153,21 +125,36 @@ static const float32_t mount_dirs[NUM_THRUSTERS] = {
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
 };
 
+// Samples of sensor data
+float tempSample, voltage1Sample, voltage2Sample;
+
+// Store samples of sensor data in an array
+float tempData[NUM_SAMPLES];
+float voltage1Data[NUM_SAMPLES];
+float voltage2Data[NUM_SAMPLES];
+
+// Counter for number of samples taken from each sensor (assume all taken at the same time)
+uint16_t sampleCount = {0};
+
+// Store sensor data read from flash
+float tempDataFlashRead[NUM_SAMPLES];
+float voltage1DataFlashRead[NUM_SAMPLES];
+float voltage2DataFlashRead[NUM_SAMPLES];
+
+// Check if flash has been written to at least once
+bool writeOnce = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-WrenchPacket UART_Parse_Wrench(uint8_t byte);
-void         Uart_Processing(void);
-void         ThrustMapper_Init(void);
-void         Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]);
-float32_t    Force_To_PWM(float32_t force);
-void writeData(void);
-void readData(uint32_t sample_number);
+void Uart_Processing(void);
+void ThrustMapper_Init(void);
+void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]);
+float32_t Force_To_PWM(float32_t force);
 void Sensors_Write_to_Flash();
 void Sensors_Read_from_Flash();
-void System_Status_Check();
 void Sleep_Mode();
 void Bad_Input();
 
@@ -224,9 +211,9 @@ int main(void)
 	  Error_Handler();
 	}
 
-  // Erase all NUM_SENSORS slots at startup
+  // Erase flash memory to be used for sensor data
   for (int i = 0; i < NUM_SENSORS; i++) {
-      if (BSP_QSPI_Erase_Block(BASE_ADDRESS + i * SAMPLE_SIZE) != QSPI_OK) {
+      if (BSP_QSPI_Erase_Block(FLASH_BLOCK_ADDR + i * DATA_SIZE) != QSPI_OK) {
           Error_Handler();
       }
   }
@@ -238,19 +225,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-/*
-	  fakeTimeout++;
 
-	  if (fakeTimeout > FAKE_TIMEOUT_MAX) {
-		  System_Status_Check();
-		  fakeTimeout = 0;
-	  }
-	  */
-
-	  // UART write-back to test parsing of input strings
+	  // Main function to process UART input and make decisions
 	  Uart_Processing();
-
-	  //temperature = BSP_TSENSOR_ReadTemp();
 
     /* USER CODE END WHILE */
 
@@ -313,7 +290,10 @@ void SystemClock_Config(void)
 
 // User Functions
 
-
+/*
+ * static void ThrustMapper_BuildT(void)
+ * Construct thruster allocation matrix that maps individual thruster forces to six-DOF wrench
+ */
 static void ThrustMapper_BuildT(void) {
     float32_t alpha = AUV_ALPHA_DEG * (float32_t)M_PI / 180.0f;
     float32_t ca = arm_cos_f32(alpha);
@@ -342,6 +322,10 @@ static void ThrustMapper_BuildT(void) {
     T_data[44]=-gm; T_data[45]=0;   T_data[46]=0;   T_data[47]=gm;
 }
 
+/*
+ * void ThrustMapper_Init(void)
+ * Calculate the pseudoinverse of the thruster allocation matrix
+ */
 void ThrustMapper_Init(void) {
     ThrustMapper_BuildT();
 
@@ -361,8 +345,11 @@ void ThrustMapper_Init(void) {
     arm_mat_mult_f32(&mat_T_t, &mat_TTt_inv, &mat_T_inv);
 }
 
+/*
+ * float32_t Force_To_PWM(float32_t force)
+ * Convert requested force on a specific thruster to a PWM value using polynomial regression
+ */
 float32_t Force_To_PWM(float32_t force) {
-    // !! Replace c[] with real coefficients from thrust_mapper_utils.py !!
     static const float32_t c[8] = {
         1500.0f, 30.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
     };
@@ -375,6 +362,10 @@ float32_t Force_To_PWM(float32_t force) {
     return result;
 }
 
+/*
+ * void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS])
+ * Convert a requested wrench in the frame of the AUV to specific force outputs from specific thrusters
+ */
 void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) {
     wrench_vec[0] = wp->force_x;  wrench_vec[1] = wp->force_y;
     wrench_vec[2] = wp->force_z;  wrench_vec[3] = wp->torque_x;
@@ -391,55 +382,54 @@ void Compute_PWM_From_Wrench(WrenchPacket *wp, uint16_t pwm_out[NUM_THRUSTERS]) 
 }
 
 /**
- * UART Writeback to show UART working, also does processing
- * process next byte.
- * @param byte 		next byte from uart
- * @return 			whatever u want!
+ * void Uart_Processing(void)
+ * Processes UART byte-by-byte and does actions based on what is received
+ * Parses based on assumed formats for RX
  */
 
 void Uart_Processing(void) {
     static char line[128];
     static uint8_t idx = 0;
 
+    // When a byte is received, check what type of data/command we're getting
     if (HAL_UART_Receive(&huart1, &byte, 1, UART_RX_TIMEOUT) == HAL_OK) {
 
+    	// Check if we're at the end of a line (i.e. a single command)
         if (byte == '\r' || byte == '\n') {
             line[idx] = '\0';  // terminate string
 
-            // -------- COMMAND PARSING --------
-
-            // 1. Voltage command: v, 16.8, 14.5
+            // 1. Voltage command: v, <voltage1, voltage2>
             if (line[0] == 'v') {
-                //float v1, v2;
 
                 if (sscanf(line, "v, %f, %f", &voltage1Sample, &voltage2Sample) == 2) {
 
-
+                	// Save the data into buffers
                     voltage1Data[sampleCount] = voltage1Sample;
                     voltage2Data[sampleCount] = voltage2Sample;
 
+                    // Get data from temp sensor
                     tempSample = BSP_TSENSOR_ReadTemp();
                     tempData[sampleCount] = tempSample;
 
                     // Increment the sample counter
                     sampleCount++;
 
+                    // If received enough samples, save to flash
                     if (sampleCount >= (NUM_SAMPLES)) {
-                    	// store in QSPI
-                    	//writeData();
                     	Sensors_Write_to_Flash();
-                    	writeOnce = true; // to ensure bad flash is not read from
-                    	sampleCount = 0;
+                    	writeOnce = true; // flag that flash has been written to
+                    	sampleCount = 0;  // reset sample counter
                     }
 
 
-
+                    // UART TX the receieved voltage and the temperature value
                     int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         "Data -> T: %.2f V1: %.2f V2: %.2f\r\n",
                         tempSample, voltage1Sample, voltage2Sample);
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
 
+                    // If voltage is too low, go into sleep mode to save power
                     if ((voltage1Sample < 10) || (voltage2Sample < 10)) {
 						int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
 									"Battery voltage too low. Entering sleep mode now.\n");
@@ -447,6 +437,8 @@ void Uart_Processing(void) {
 								Sleep_Mode();
                     }
                 }
+
+                // If input in wrong format, TX a message to the user
                 else{
                 	Bad_Input();
                 }
@@ -460,6 +452,7 @@ void Uart_Processing(void) {
 					// Get tempDataFlashRead, voltage1DataFlashRead, and voltage2DataFlashRead
 					Sensors_Read_from_Flash();
 
+					// TX data from flash
 					for (int i = 0; i < (NUM_SAMPLES); i++) {
 
 						int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
@@ -471,6 +464,7 @@ void Uart_Processing(void) {
 
             	}
 
+            	// If not enough samples have been taken to display
             	else {
 					int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
 						"Not enough samples taken. You have taken %d samples and you need %d.",
@@ -482,21 +476,22 @@ void Uart_Processing(void) {
 
             }
 
-            // 3. Force command: f, 1, 1, 3, 2, 1, 6
-            else if (line[0] == 'f') {
+            // 3. Wrench command: w, <force_x, force_y, force_z, torque_x, torque_y, torque_z>
+            else if (line[0] == 'w') {
                 WrenchPacket wp = {0};
 
-                if (sscanf(line, "f, %f, %f, %f, %f, %f, %f",
+                // Save the data into buffer
+                if (sscanf(line, "w, %f, %f, %f, %f, %f, %f",
                     &wp.force_x, &wp.force_y, &wp.force_z,
                     &wp.torque_x, &wp.torque_y, &wp.torque_z) == 6) {
 
                     wp.isValid = true;
 
+                    // Calculate PWM for each thruster from the input wrench + TX
                     uint16_t pwm[NUM_THRUSTERS];
                     Compute_PWM_From_Wrench(&wp, pwm);
 
-                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-                        "PWM:[%u,%u,%u,%u,%u,%u,%u,%u]\r\n",
+                    int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer), "PWM:[%u,%u,%u,%u,%u,%u,%u,%u]\r\n",
                         pwm[0], pwm[1], pwm[2], pwm[3],
                         pwm[4], pwm[5], pwm[6], pwm[7]);
 
@@ -504,11 +499,13 @@ void Uart_Processing(void) {
 
                     HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
                 }
+                // If input in wrong format, TX a message to the user
                 else {
                 	Bad_Input();
                 }
             }
 
+            // If input in wrong format, TX a message to the user
             else {
 
             	if (idx > 0 || line[0] != '\0') { // don't trigger on empty line
@@ -521,12 +518,14 @@ void Uart_Processing(void) {
             // reset buffer
             idx = 0;
         }
+
+        // Overflow protection
         else {
             if (idx < sizeof(line) - 1) {
                 line[idx++] = byte;
             }
             else {
-                idx = 0; // overflow protection
+                idx = 0;
             }
         }
     }
@@ -534,161 +533,40 @@ void Uart_Processing(void) {
 
 
 /**
- * (OBSOLETE, MERGED INTO UART_PROCESSING)
- * State machine to manage wrench packets over UART, call repeatedly to
- * process next byte.
- * @param byte 		next byte from uart
- * @return 			UART_Parse_Wrench struct (6 vals + flag)
- */
-WrenchPacket UART_Parse_Wrench(uint8_t byte) {
-
-	// Assume that incoming packets are in the format:
-	// <force_x, force_y, force_z, torque_x, torque_y, torque_z>
-
-	// Initialize state variable, set to Waiting in first iteration
-	static UartState uartState = Waiting;
-
-	// Increment up to WRENCH_SIZE = 6, set to 0 in first iteration
-	static uint8_t wrenchIdx = 0;
-
-	// Initialize wrenchPacket to 0 every time, this sets the isValid flag to FALSE
-	WrenchPacket wrench = {0};
-
-	switch(uartState) {
-
-	case(Waiting):
-			if (byte == '<') { // packet is starting
-				uartState = Receiving; // set state
-				wrenchIdx = 0;		   // set index
-				memset(uartRxBuffer, 0, sizeof(uartRxBuffer)); // clear buffer
-			} // if
-
-			break;
-
-	case(Receiving):
-		if (byte == '>') { // packet is ending
-
-			// End buffer location with null character
-			uartRxBuffer[wrenchIdx] = '\0';
-
-			// Parse the wrench values
-			uint8_t numValues = sscanf(uartRxBuffer, "%f, %f, %f, %f, %f, %f",
-					&wrench.force_x, &wrench.force_y,
-					&wrench.force_z, &wrench.torque_x,
-					&wrench.torque_y, &wrench.torque_z);
-
-			if (numValues == (uint8_t)WRENCH_SIZE) {
-				wrench.isValid = true;
-			} // if
-
-			// Return state to waiting
-			uartState = Waiting;
-
-		} // if
-
-		else { // just a regular data byte
-			if (wrenchIdx < (sizeof(uartRxBuffer)-1)) { // make sure didn't get fucked up packet
-				uartRxBuffer[wrenchIdx++] = byte;
-			}
-			else { // packet was too long, you silly goose. you're so silly
-				uartState = Waiting; // get kicked out. idiot.
-			}
-		} // else
-
-			break;
-
-		} // switch
-
-	return(wrench);
-} // WrenchPacket UART_Parse_Wrench(uint8_t byte)
-
-
-// OLD FLASH WRITE FUNCTION ------------------------------------
-void writeData(void) {
-    uint32_t writeIndex = sampleCounter % NUM_SENSORS;
-    uint32_t writeAddress = BASE_ADDRESS + writeIndex * SAMPLE_SIZE;
-
-    // Erase only this slot before writing
-    if (BSP_QSPI_Erase_Block(writeAddress) != QSPI_OK) {
-        Error_Handler();
-    }
-
-    memset(writeBuffer, 0, SAMPLE_SIZE);
-
-    memcpy(&writeBuffer[0], &temperature, FLOAT_SIZE);
-    memcpy(&writeBuffer[FLOAT_SIZE], &voltage1, FLOAT_SIZE);
-    memcpy(&writeBuffer[2 * FLOAT_SIZE], &voltage2, FLOAT_SIZE);
-
-    if (BSP_QSPI_Write(writeBuffer, writeAddress, SAMPLE_SIZE) != QSPI_OK) {
-        Error_Handler();
-    }
-
-    sampleCounter++;
-
-    if (actualNumberSamples < NUM_SENSORS) {
-        actualNumberSamples++;
-    }
-}
-
-// NEW FLASh WRITE FUNCTION -----------------------------------------
-
-/**
- * @name Sensors_Write_to_Flash() {
- *
- *
- * @param[in] Global: Sensor Data Buffers: tempData, pressureData, magData, accelSample
+ * void Sensors_Write_to_Flash() {
+ * Write sensor data buffers to flash (tempData, voltage1Data, voltage2Data)
  */
 void Sensors_Write_to_Flash() {
 
 	BSP_QSPI_Erase_Block(FLASH_BLOCK_ADDR);
 
-	// tempData[100] = 100 floats * 4B/float = 400B
+	// 100 floats * 4B/float = 400B
     BSP_QSPI_Write((uint8_t*)tempData, TEMP_FLASH_ADDR, sizeof(tempData));
 
-    // 100 floats * 4B/float = 400B
     BSP_QSPI_Write((uint8_t*)voltage1Data, VOLTAGE1_FLASH_ADDR, sizeof(voltage1Data));
 
-    // 100 floats * 4B/float = 400B
     BSP_QSPI_Write((uint8_t*)voltage2Data, VOLTAGE2_FLASH_ADDR, sizeof(voltage2Data));
 
 
 }
 
 
-/////
 
-/// OLD FLASH READ FUNCTION
-
-void readData(uint32_t sample_number) {
-    uint32_t readAddress = BASE_ADDRESS + (sample_number % NUM_SENSORS) * SAMPLE_SIZE;
-
-    if (BSP_QSPI_Read(readBuffer, readAddress, SAMPLE_SIZE) != QSPI_OK) {
-        Error_Handler();
-    }
-}
-
-///// NEW FLASH READ FUNCTOIN
 /**
- * @name Sensors_Read_from_Flash() {s
- *
- * Reads sensor data from flash to other data buffers
- *
- * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
+ * Sensors_Read_from_Flash( {
+ * Read sensor data buffers to flash (tempDataFlashRead, voltage1DataFlashRead, voltage2DataFlashRead)
  */
-
 void Sensors_Read_from_Flash() {
 
-	// tempData[100] = 100 floats * 4B/float = 400B
+	// 100 floats * 4B/float = 400B
 	if (BSP_QSPI_Read((uint8_t*)tempDataFlashRead, TEMP_FLASH_ADDR, sizeof(tempDataFlashRead)) != QSPI_OK){
 	      Error_Handler();
 	}
 
-    // pressureData[100] = 100 floats * 4B/float = 400B
 	if (BSP_QSPI_Read((uint8_t*)voltage1DataFlashRead, VOLTAGE1_FLASH_ADDR, sizeof(voltage1DataFlashRead)) != QSPI_OK){
 	      Error_Handler();
 	}
 
-    // magData[100][3] = 100 floats * 3 * 4B/float = 1200B
 	if (BSP_QSPI_Read((uint8_t*)voltage2DataFlashRead, VOLTAGE2_FLASH_ADDR, sizeof(voltage2DataFlashRead)) != QSPI_OK){
 	      Error_Handler();
 	}
@@ -697,67 +575,34 @@ void Sensors_Read_from_Flash() {
 
 
 /**
- * @name System_Status_Check()
- *
- * Checks sensor data loaded from flash and decide if to shutdown
- *
- * @param[out] Global: Sensor Data Output Buffers: tempDataFlashRead, pressureDataFlashRead, magDataFlashRead, accelDataFlashRead
+ * void Sleep_Mode() {
+ * Enter Sleep Mode
  */
-
-void System_Status_Check() {
-
-	if (writeOnce) { // wait until have enough data
-		//Sensors_Read_from_Flash();
-
-		//float avgTemp = 0;
-
-		//for (uint8_t i = 0; i <= NUM_SAMPLES; i++) {
-
-			//avgTemp += tempDataFlashRead[i];
-
-		} // loopdy loop
-
-		//avgTemp = avgTemp / (float)NUM_SAMPLES;
-
-		//if (avgTemp > (float)MAX_TEMP) {
-		int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-					"Battery voltage too low, entering sleep mode.\n");
-				HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
-				Sleep_Mode();
-				//HAL_SuspendTick();
-				//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-		//}
-
-
-	//} // guard
-
-}
-
-
-// Enter Sleep Mode
 void Sleep_Mode() {
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1500);  // set thruster output to 0
+
+	// Set thruster output to 0
+	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1500);
+
+	// Enter sleep mode
 	HAL_SuspendTick();
 	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
 }
 
 
-
-// check interrrupt code
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if(GPIO_Pin == GPIO_PIN_1) // If The INT Source Is EXTI Line1 (A1 Pin)
+    if(GPIO_Pin == GPIO_PIN_1) // If blue button pressed
     {
-        // CPU Has Exited From Sleep Mode, Resume The SysTick!
+        // Wake up
         HAL_ResumeTick();
-        int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
-            "ON THE FOURTH DAY GOD HAS RISEN... GOD IS ME");
-        HAL_UART_Transmit(&huart1, (uint8_t*)uartTxBuffer, len, UART_TX_TIMEOUT);
     }
 }
 
-// bad input
+/**
+ * void Bad_Input()
+ * Sends TX in response to invalid input from computer
+ */
 void Bad_Input() {
 	int len = snprintf(uartTxBuffer, sizeof(uartTxBuffer),
                         	"Invalid Command. Valid commands: <f, Fx, Fy, Fz, Tx, Ty, Tz> and <t>\r\n");
